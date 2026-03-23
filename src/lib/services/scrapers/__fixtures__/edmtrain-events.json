@@ -1,0 +1,78 @@
+{
+  "success": true,
+  "data": [
+    {
+      "id": 100001,
+      "name": "Techno Tuesday: Charlotte de Witte",
+      "date": "2026-03-17",
+      "festivalInd": false,
+      "electronicMusicInd": true,
+      "venue": {
+        "id": 5001,
+        "name": "Warehouse Project",
+        "location": "Manchester, UK"
+      },
+      "artistList": [
+        { "id": 2001, "name": "Charlotte de Witte", "b2bInd": false },
+        { "id": 2002, "name": "Amelie Lens", "b2bInd": false }
+      ]
+    },
+    {
+      "id": 100002,
+      "name": null,
+      "date": "2026-03-18",
+      "endDate": "2026-03-20",
+      "festivalInd": true,
+      "festivalName": "Tomorrowland Winter",
+      "electronicMusicInd": true,
+      "venue": {
+        "id": 5002,
+        "name": "Alpe d'Huez",
+        "location": "Alpe d'Huez, France"
+      },
+      "artistList": [
+        { "id": 2003, "name": "Boris Brejcha", "b2bInd": false },
+        { "id": 2004, "name": "ANNA", "b2bInd": false },
+        { "id": 2001, "name": "Charlotte de Witte", "b2bInd": false }
+      ]
+    },
+    {
+      "id": 100003,
+      "date": "2026-03-19",
+      "festivalInd": false,
+      "electronicMusicInd": true,
+      "venue": {
+        "id": 5003,
+        "name": "Berghain",
+        "location": "Berlin, Germany"
+      },
+      "artistList": [
+        { "id": 2005, "name": "Ben Klock", "b2bInd": false },
+        { "id": 2006, "name": "Marcel Dettmann", "b2bInd": true }
+      ]
+    },
+    {
+      "id": 100004,
+      "date": "2026-03-20",
+      "festivalInd": false,
+      "electronicMusicInd": true,
+      "venue": null,
+      "artistList": []
+    },
+    {
+      "id": 100005,
+      "name": "fabric presents: Four Tet",
+      "date": "2026-03-21",
+      "festivalInd": false,
+      "electronicMusicInd": true,
+      "venue": {
+        "id": 5004,
+        "name": "fabric",
+        "location": "London, UK"
+      },
+      "artistList": [
+        { "id": 2007, "name": "Four Tet", "b2bInd": false }
+      ]
+    }
+  ]
+}

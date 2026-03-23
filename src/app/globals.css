@@ -1,0 +1,68 @@
+@import "tailwindcss";
+
+:root {
+  --bg-primary: #0A0A0F;
+  --bg-surface: #12121A;
+  --bg-surface-hover: #1A1A25;
+  --border-subtle: #1E1E2A;
+  --text-primary: #E8E6F0;
+  --text-secondary: #8A8699;
+  --text-tertiary: #5A5670;
+  --accent-primary: #A78BFA;
+  --accent-warm: #F59E42;
+  --accent-positive: #34D399;
+  --accent-negative: #F87171;
+}
+
+@theme inline {
+  --color-bg-primary: var(--bg-primary);
+  --color-bg-surface: var(--bg-surface);
+  --color-bg-surface-hover: var(--bg-surface-hover);
+  --color-border-subtle: var(--border-subtle);
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-tertiary: var(--text-tertiary);
+  --color-accent-primary: var(--accent-primary);
+  --color-accent-warm: var(--accent-warm);
+  --color-accent-positive: var(--accent-positive);
+  --color-accent-negative: var(--accent-negative);
+  --font-sans: var(--font-inter);
+  --font-mono: var(--font-jetbrains-mono);
+}
+
+body {
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: var(--font-sans), system-ui, sans-serif;
+}
+
+/* Scrollbar styling for the dark theme */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-primary);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border-subtle);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-tertiary);
+}
+
+/* Toast enter animation */
+@keyframes toast-enter {
+  from {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}

@@ -1,0 +1,52 @@
+name: ci
+
+on:
+  workflow_dispatch:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    env:
+      IMAGE: ghcr.io/${{ github.repository_owner }}/hausparty
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: docker/setup-buildx-action@v4
+
+      - uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Lowercase image name
+        run: echo "IMAGE_LC=${IMAGE,,}" >> "$GITHUB_ENV"
+
+      - uses: docker/build-push-action@v7
+        with:
+          context: .
+          push: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+          tags: |
+            ${{ env.IMAGE_LC }}:latest
+            ${{ env.IMAGE_LC }}:${{ github.sha }}
+          build-args: |
+            NEXT_PUBLIC_SUPABASE_URL=${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+            NEXT_PUBLIC_SUPABASE_ANON_KEY=${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Update image tag in homelab
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: peter-evans/repository-dispatch@v4
+        with:
+          token: ${{ secrets.HOMELAB_PAT }}
+          repository: techgardencode/homelab
+          event-type: update-image
+          client-payload: '{"app": "hausparty", "tag": "${{ github.sha }}"}'
