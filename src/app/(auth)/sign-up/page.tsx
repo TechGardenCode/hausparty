@@ -1,5 +1,5 @@
-import { signIn } from "@/lib/auth";
+import { redirect } from "next/navigation";
 
-export default async function SignUpPage() {
-  await signIn("keycloak", { redirectTo: "/" });
+export default function SignUpPage() {
+  redirect("/api/auth/login?callbackUrl=%2F");
 }

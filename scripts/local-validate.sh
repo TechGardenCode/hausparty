@@ -61,10 +61,14 @@ if [[ -z "${BWS_ACCESS_TOKEN:-}" ]]; then
     # shellcheck source=/dev/null
     source "$REPO_ROOT/.env"
   fi
+  # Support BITWARDEN_ACCESS_TOKEN alias
+  if [[ -z "${BWS_ACCESS_TOKEN:-}" && -n "${BITWARDEN_ACCESS_TOKEN:-}" ]]; then
+    BWS_ACCESS_TOKEN="$BITWARDEN_ACCESS_TOKEN"
+  fi
 fi
 
 if [[ -z "${BWS_ACCESS_TOKEN:-}" ]]; then
-  echo "ERROR: BWS_ACCESS_TOKEN not set. Add it to $REPO_ROOT/.env or export it." >&2
+  echo "ERROR: BWS_ACCESS_TOKEN (or BITWARDEN_ACCESS_TOKEN) not set. Add it to $REPO_ROOT/.env or export it." >&2
   exit 1
 fi
 export BWS_ACCESS_TOKEN
@@ -90,7 +94,7 @@ cleanup() {
 trap cleanup EXIT
 
 echo "Starting port-forward to hausparty-db-rw..."
-kubectl port-forward -n hausparty svc/hausparty-db-rw 5432:5432 &>/dev/null &
+kubectl --context admin@talos-dev port-forward -n hausparty svc/hausparty-db-rw 5432:5432 &>/dev/null &
 PF_PID=$!
 sleep 2
 

@@ -1,4 +1,4 @@
-import { signIn } from "@/lib/auth";
+import { redirect } from "next/navigation";
 
 export default async function SignInPage({
   searchParams,
@@ -7,5 +7,5 @@ export default async function SignInPage({
 }) {
   const { callbackUrl, redirect: redirectParam } = await searchParams;
   const redirectTo = callbackUrl || redirectParam || "/";
-  await signIn("keycloak", { redirectTo });
+  redirect(`/api/auth/login?callbackUrl=${encodeURIComponent(redirectTo)}`);
 }
