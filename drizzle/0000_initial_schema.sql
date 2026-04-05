@@ -2,15 +2,31 @@
 -- Auth handled by Keycloak; user_id columns are Keycloak subject UUIDs.
 
 -- Enums
+
+--> statement-breakpoint
 CREATE TYPE "platform" AS ENUM ('youtube', 'soundcloud');
+
+--> statement-breakpoint
 CREATE TYPE "source_type" AS ENUM ('official', 'artist', 'fan');
+
+--> statement-breakpoint
 CREATE TYPE "media_type" AS ENUM ('video', 'audio');
+
+--> statement-breakpoint
 CREATE TYPE "follow_target" AS ENUM ('artist', 'festival', 'genre');
+
+--> statement-breakpoint
 CREATE TYPE "submission_status" AS ENUM ('pending', 'approved', 'rejected');
+
+--> statement-breakpoint
 CREATE TYPE "user_role" AS ENUM ('viewer', 'artist', 'festival_manager', 'site_admin');
+
+--> statement-breakpoint
 CREATE TYPE "scraper_status" AS ENUM ('running', 'completed', 'failed');
 
 -- Content tables
+
+--> statement-breakpoint
 CREATE TABLE "genres" (
   "id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   "name" text NOT NULL UNIQUE,
@@ -18,6 +34,8 @@ CREATE TABLE "genres" (
   "created_at" timestamptz NOT NULL DEFAULT now()
 );
 
+
+--> statement-breakpoint
 CREATE TABLE "artists" (
   "id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   "name" text NOT NULL,
@@ -29,12 +47,16 @@ CREATE TABLE "artists" (
   "created_at" timestamptz NOT NULL DEFAULT now()
 );
 
+
+--> statement-breakpoint
 CREATE TABLE "artist_genres" (
   "artist_id" uuid NOT NULL REFERENCES "artists"("id") ON DELETE CASCADE,
   "genre_id" uuid NOT NULL REFERENCES "genres"("id") ON DELETE CASCADE,
   PRIMARY KEY ("artist_id", "genre_id")
 );
 
+
+--> statement-breakpoint
 CREATE TABLE "festivals" (
   "id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   "name" text NOT NULL,
@@ -44,12 +66,16 @@ CREATE TABLE "festivals" (
   "created_at" timestamptz NOT NULL DEFAULT now()
 );
 
+
+--> statement-breakpoint
 CREATE TABLE "festival_genres" (
   "festival_id" uuid NOT NULL REFERENCES "festivals"("id") ON DELETE CASCADE,
   "genre_id" uuid NOT NULL REFERENCES "genres"("id") ON DELETE CASCADE,
   PRIMARY KEY ("festival_id", "genre_id")
 );
 
+
+--> statement-breakpoint
 CREATE TABLE "events" (
   "id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   "name" text NOT NULL,
@@ -62,6 +88,8 @@ CREATE TABLE "events" (
   "created_at" timestamptz NOT NULL DEFAULT now()
 );
 
+
+--> statement-breakpoint
 CREATE TABLE "sets" (
   "id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   "title" text NOT NULL,
@@ -73,6 +101,8 @@ CREATE TABLE "sets" (
   "created_at" timestamptz NOT NULL DEFAULT now()
 );
 
+
+--> statement-breakpoint
 CREATE TABLE "set_artists" (
   "set_id" uuid NOT NULL REFERENCES "sets"("id") ON DELETE CASCADE,
   "artist_id" uuid NOT NULL REFERENCES "artists"("id") ON DELETE CASCADE,
@@ -80,12 +110,16 @@ CREATE TABLE "set_artists" (
   PRIMARY KEY ("set_id", "artist_id")
 );
 
+
+--> statement-breakpoint
 CREATE TABLE "set_genres" (
   "set_id" uuid NOT NULL REFERENCES "sets"("id") ON DELETE CASCADE,
   "genre_id" uuid NOT NULL REFERENCES "genres"("id") ON DELETE CASCADE,
   PRIMARY KEY ("set_id", "genre_id")
 );
 
+
+--> statement-breakpoint
 CREATE TABLE "sources" (
   "id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   "set_id" uuid NOT NULL REFERENCES "sets"("id") ON DELETE CASCADE,
@@ -99,6 +133,8 @@ CREATE TABLE "sources" (
   "created_at" timestamptz NOT NULL DEFAULT now()
 );
 
+
+--> statement-breakpoint
 CREATE TABLE "tracklist_entries" (
   "id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   "set_id" uuid NOT NULL REFERENCES "sets"("id") ON DELETE CASCADE,
@@ -109,6 +145,8 @@ CREATE TABLE "tracklist_entries" (
 );
 
 -- User-scoped tables (user_id = Keycloak subject UUID, no FK constraint)
+
+--> statement-breakpoint
 CREATE TABLE "saved_sets" (
   "user_id" uuid NOT NULL,
   "set_id" uuid NOT NULL REFERENCES "sets"("id") ON DELETE CASCADE,
@@ -116,6 +154,8 @@ CREATE TABLE "saved_sets" (
   PRIMARY KEY ("user_id", "set_id")
 );
 
+
+--> statement-breakpoint
 CREATE TABLE "follows" (
   "user_id" uuid NOT NULL,
   "target_type" "follow_target" NOT NULL,
@@ -124,6 +164,8 @@ CREATE TABLE "follows" (
   PRIMARY KEY ("user_id", "target_type", "target_id")
 );
 
+
+--> statement-breakpoint
 CREATE TABLE "collections" (
   "id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   "user_id" uuid NOT NULL,
@@ -131,6 +173,8 @@ CREATE TABLE "collections" (
   "created_at" timestamptz NOT NULL DEFAULT now()
 );
 
+
+--> statement-breakpoint
 CREATE TABLE "collection_sets" (
   "collection_id" uuid NOT NULL REFERENCES "collections"("id") ON DELETE CASCADE,
   "set_id" uuid NOT NULL REFERENCES "sets"("id") ON DELETE CASCADE,
@@ -138,6 +182,8 @@ CREATE TABLE "collection_sets" (
   PRIMARY KEY ("collection_id", "set_id")
 );
 
+
+--> statement-breakpoint
 CREATE TABLE "submissions" (
   "id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   "user_id" uuid NOT NULL,
@@ -156,6 +202,8 @@ CREATE TABLE "submissions" (
   "rejection_reason" text
 );
 
+
+--> statement-breakpoint
 CREATE TABLE "user_roles" (
   "id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   "user_id" uuid NOT NULL,
@@ -164,6 +212,8 @@ CREATE TABLE "user_roles" (
   UNIQUE("user_id", "role")
 );
 
+
+--> statement-breakpoint
 CREATE TABLE "user_settings" (
   "user_id" uuid PRIMARY KEY,
   "display_name" text,
@@ -174,6 +224,8 @@ CREATE TABLE "user_settings" (
 );
 
 -- Scraper infrastructure
+
+--> statement-breakpoint
 CREATE TABLE "scraper_runs" (
   "id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   "scraper_name" text NOT NULL,
@@ -186,6 +238,8 @@ CREATE TABLE "scraper_runs" (
   "created_at" timestamptz NOT NULL DEFAULT now()
 );
 
+
+--> statement-breakpoint
 CREATE TABLE "scraper_entity_map" (
   "id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   "scraper_name" text NOT NULL,
@@ -198,22 +252,52 @@ CREATE TABLE "scraper_entity_map" (
 );
 
 -- Indexes
+
+--> statement-breakpoint
 CREATE INDEX "idx_artists_name_trgm" ON "artists" USING gin ("name" gin_trgm_ops);
+
+--> statement-breakpoint
 CREATE INDEX "idx_artists_aliases" ON "artists" USING gin ("aliases");
+
+--> statement-breakpoint
 CREATE INDEX "idx_sets_title_trgm" ON "sets" USING gin ("title" gin_trgm_ops);
+
+--> statement-breakpoint
 CREATE INDEX "idx_festivals_name_trgm" ON "festivals" USING gin ("name" gin_trgm_ops);
+
+--> statement-breakpoint
 CREATE INDEX "idx_events_date" ON "events" ("date_start" DESC);
+
+--> statement-breakpoint
 CREATE INDEX "idx_sets_performed_at" ON "sets" ("performed_at" DESC);
+
+--> statement-breakpoint
 CREATE INDEX "idx_sources_set_id" ON "sources" ("set_id");
+
+--> statement-breakpoint
 CREATE INDEX "idx_tracklist_set_id" ON "tracklist_entries" ("set_id", "position");
+
+--> statement-breakpoint
 CREATE INDEX "idx_saved_sets_user" ON "saved_sets" ("user_id");
+
+--> statement-breakpoint
 CREATE INDEX "idx_follows_user" ON "follows" ("user_id");
+
+--> statement-breakpoint
 CREATE INDEX "idx_collections_user" ON "collections" ("user_id");
+
+--> statement-breakpoint
 CREATE INDEX "idx_submissions_user" ON "submissions" ("user_id");
+
+--> statement-breakpoint
 CREATE INDEX "idx_user_roles_user" ON "user_roles" ("user_id");
+
+--> statement-breakpoint
 CREATE INDEX "idx_scraper_runs_name_started" ON "scraper_runs" ("scraper_name", "started_at" DESC);
 
 -- Full-text search materialized view
+
+--> statement-breakpoint
 CREATE MATERIALIZED VIEW "sets_search" AS
 SELECT
   s."id" AS "set_id",
@@ -245,11 +329,19 @@ LEFT JOIN "set_genres" sg ON sg."set_id" = s."id"
 LEFT JOIN "genres" g ON sg."genre_id" = g."id"
 GROUP BY s."id", s."title", s."slug", s."performed_at", s."duration_seconds", e."name", e."slug", f."name", f."slug";
 
+
+--> statement-breakpoint
 CREATE INDEX "idx_sets_search_vector" ON "sets_search" USING gin ("search_vector");
+
+--> statement-breakpoint
 CREATE INDEX "idx_sets_search_trgm" ON "sets_search" USING gin ("search_text" gin_trgm_ops);
+
+--> statement-breakpoint
 CREATE UNIQUE INDEX "sets_search_set_id_idx" ON "sets_search" ("set_id");
 
 -- RPC functions
+
+--> statement-breakpoint
 CREATE OR REPLACE FUNCTION refresh_search_view()
 RETURNS void LANGUAGE plpgsql SECURITY DEFINER AS $$
 BEGIN
@@ -257,6 +349,8 @@ BEGIN
 END;
 $$;
 
+
+--> statement-breakpoint
 CREATE OR REPLACE FUNCTION search_sets(search_query text, result_limit int DEFAULT 20)
 RETURNS TABLE(set_id uuid, rank real) LANGUAGE sql STABLE AS $$
   SELECT
@@ -273,6 +367,8 @@ RETURNS TABLE(set_id uuid, rank real) LANGUAGE sql STABLE AS $$
   LIMIT result_limit;
 $$;
 
+
+--> statement-breakpoint
 CREATE OR REPLACE FUNCTION find_similar_artists_by_name(search_name text, similarity_threshold real DEFAULT 0.6)
 RETURNS TABLE(artist_id uuid, artist_name text, sim real) LANGUAGE sql STABLE AS $$
   SELECT a."id", a."name", similarity(a."name", search_name)::real AS sim
@@ -282,6 +378,8 @@ RETURNS TABLE(artist_id uuid, artist_name text, sim real) LANGUAGE sql STABLE AS
   LIMIT 5;
 $$;
 
+
+--> statement-breakpoint
 CREATE OR REPLACE FUNCTION find_similar_artists(similarity_threshold real DEFAULT 0.7)
 RETURNS TABLE(artist1_id uuid, artist1_name text, artist2_id uuid, artist2_name text, sim real) LANGUAGE sql STABLE AS $$
   SELECT a1."id", a1."name", a2."id", a2."name", similarity(a1."name", a2."name")::real
@@ -291,6 +389,8 @@ RETURNS TABLE(artist1_id uuid, artist1_name text, artist2_id uuid, artist2_name 
   LIMIT 100;
 $$;
 
+
+--> statement-breakpoint
 CREATE OR REPLACE FUNCTION merge_artists(canonical_id uuid, duplicate_id uuid)
 RETURNS void LANGUAGE plpgsql SECURITY DEFINER AS $$
 DECLARE

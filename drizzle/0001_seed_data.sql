@@ -3,6 +3,8 @@
 -- ============================================================
 -- GENRES
 -- ============================================================
+
+--> statement-breakpoint
 INSERT INTO genres (id, name, slug) VALUES
   ('a0000000-0000-0000-0000-000000000001', 'Techno', 'techno'),
   ('a0000000-0000-0000-0000-000000000002', 'House', 'house'),
@@ -19,6 +21,8 @@ INSERT INTO genres (id, name, slug) VALUES
 -- ============================================================
 -- ARTISTS
 -- ============================================================
+
+--> statement-breakpoint
 INSERT INTO artists (id, name, slug, aliases, bio, socials) VALUES
   ('b0000000-0000-0000-0000-000000000001', 'Amelie Lens', 'amelie-lens', '{}', 'Belgian techno DJ and producer known for driving, energetic sets.', '{"instagram": "amelielens", "soundcloud": "amelielens"}'),
   ('b0000000-0000-0000-0000-000000000002', 'Four Tet', 'four-tet', '{"Kieran Hebden", "KH", "Percussions"}', 'British electronic musician known for eclectic, textured DJ sets spanning genres.', '{"instagram": "fourtetkieran", "soundcloud": "four-tet"}'),
@@ -39,6 +43,8 @@ INSERT INTO artists (id, name, slug, aliases, bio, socials) VALUES
 -- ============================================================
 -- ARTIST GENRES
 -- ============================================================
+
+--> statement-breakpoint
 INSERT INTO artist_genres (artist_id, genre_id) VALUES
   ('b0000000-0000-0000-0000-000000000001', 'a0000000-0000-0000-0000-000000000001'), -- Amelie Lens → Techno
   ('b0000000-0000-0000-0000-000000000002', 'a0000000-0000-0000-0000-000000000002'), -- Four Tet → House
@@ -64,6 +70,8 @@ INSERT INTO artist_genres (artist_id, genre_id) VALUES
 -- ============================================================
 -- FESTIVALS
 -- ============================================================
+
+--> statement-breakpoint
 INSERT INTO festivals (id, name, slug, description) VALUES
   ('c0000000-0000-0000-0000-000000000001', 'Tomorrowland', 'tomorrowland', 'The world''s most iconic electronic music festival, held in Boom, Belgium since 2005.'),
   ('c0000000-0000-0000-0000-000000000002', 'Ultra Music Festival', 'ultra-music-festival', 'Premier electronic music festival in Miami, showcasing the biggest names in EDM since 1999.'),
@@ -74,6 +82,8 @@ INSERT INTO festivals (id, name, slug, description) VALUES
 -- ============================================================
 -- FESTIVAL GENRES
 -- ============================================================
+
+--> statement-breakpoint
 INSERT INTO festival_genres (festival_id, genre_id) VALUES
   ('c0000000-0000-0000-0000-000000000001', 'a0000000-0000-0000-0000-000000000001'), -- Tomorrowland → Techno
   ('c0000000-0000-0000-0000-000000000001', 'a0000000-0000-0000-0000-000000000002'), -- Tomorrowland → House
@@ -92,6 +102,8 @@ INSERT INTO festival_genres (festival_id, genre_id) VALUES
 -- ============================================================
 -- EVENTS
 -- ============================================================
+
+--> statement-breakpoint
 INSERT INTO events (id, name, slug, festival_id, date_start, date_end, location, stages) VALUES
   ('d0000000-0000-0000-0000-000000000001', 'Tomorrowland Belgium 2024 Weekend 1', 'tomorrowland-belgium-2024-w1', 'c0000000-0000-0000-0000-000000000001', '2024-07-19', '2024-07-21', 'Boom, Belgium', '{"Mainstage", "Freedom", "Atmosphere", "Core"}'),
   ('d0000000-0000-0000-0000-000000000002', 'Tomorrowland Belgium 2024 Weekend 2', 'tomorrowland-belgium-2024-w2', 'c0000000-0000-0000-0000-000000000001', '2024-07-26', '2024-07-28', 'Boom, Belgium', '{"Mainstage", "Freedom", "Atmosphere", "Core"}'),
@@ -106,6 +118,8 @@ INSERT INTO events (id, name, slug, festival_id, date_start, date_end, location,
 -- ============================================================
 -- SETS (20 sets)
 -- ============================================================
+
+--> statement-breakpoint
 INSERT INTO sets (id, title, slug, event_id, stage, performed_at, duration_seconds) VALUES
   ('e0000000-0000-0000-0000-000000000001', 'Amelie Lens at Tomorrowland 2024 Weekend 1', 'amelie-lens-tomorrowland-2024-w1', 'd0000000-0000-0000-0000-000000000001', 'Mainstage', '2024-07-20 22:00:00+00', 3600),
   ('e0000000-0000-0000-0000-000000000002', 'Charlotte de Witte at Tomorrowland Brasil 2024', 'charlotte-de-witte-tomorrowland-brasil-2024', 'd0000000-0000-0000-0000-000000000003', 'Mainstage', '2024-10-13 22:00:00+00', 4020),
@@ -131,6 +145,8 @@ INSERT INTO sets (id, title, slug, event_id, stage, performed_at, duration_secon
 -- ============================================================
 -- SET ARTISTS
 -- ============================================================
+
+--> statement-breakpoint
 INSERT INTO set_artists (set_id, artist_id, position) VALUES
   ('e0000000-0000-0000-0000-000000000001', 'b0000000-0000-0000-0000-000000000001', 0),
   ('e0000000-0000-0000-0000-000000000002', 'b0000000-0000-0000-0000-000000000003', 0),
@@ -156,6 +172,8 @@ INSERT INTO set_artists (set_id, artist_id, position) VALUES
 -- ============================================================
 -- SET GENRES
 -- ============================================================
+
+--> statement-breakpoint
 INSERT INTO set_genres (set_id, genre_id) VALUES
   ('e0000000-0000-0000-0000-000000000001', 'a0000000-0000-0000-0000-000000000001'), -- Amelie Lens → Techno
   ('e0000000-0000-0000-0000-000000000002', 'a0000000-0000-0000-0000-000000000001'), -- CdW → Techno
@@ -186,6 +204,8 @@ INSERT INTO set_genres (set_id, genre_id) VALUES
 -- ============================================================
 -- SOURCES (real YouTube + SoundCloud links)
 -- ============================================================
+
+--> statement-breakpoint
 INSERT INTO sources (id, set_id, platform, url, source_type, media_type, quality, embed_supported, is_active) VALUES
   -- Set 1: Amelie Lens @ Tomorrowland 2024 W1
   ('f0000000-0000-0000-0000-000000000001', 'e0000000-0000-0000-0000-000000000001', 'youtube', 'https://www.youtube.com/watch?v=vjR_gc6c1xw', 'official', 'video', 'HD', true, true),
@@ -235,6 +255,8 @@ INSERT INTO sources (id, set_id, platform, url, source_type, media_type, quality
 -- ============================================================
 -- TRACKLIST ENTRIES (sample for first 5 sets)
 -- ============================================================
+
+--> statement-breakpoint
 INSERT INTO tracklist_entries (set_id, position, title, timestamp_seconds) VALUES
   -- Amelie Lens @ Tomorrowland 2024 W1
   ('e0000000-0000-0000-0000-000000000001', 1, 'Amelie Lens - Fallen', 0),
@@ -285,4 +307,6 @@ INSERT INTO tracklist_entries (set_id, position, title, timestamp_seconds) VALUE
   ('aaaa0000-0000-0000-0000-000000000001', 'site_admin');
 
 -- Refresh the materialized view
+
+--> statement-breakpoint
 REFRESH MATERIALIZED VIEW sets_search;
