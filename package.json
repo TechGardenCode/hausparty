@@ -9,7 +9,9 @@
     "lint": "eslint",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
-    "test": "vitest run"
+    "test": "vitest run",
+    "validate": "bash scripts/local-validate.sh",
+    "validate:dev": "bash scripts/local-validate.sh --dev"
   },
   "dependencies": {
     "clsx": "^2.1.1",

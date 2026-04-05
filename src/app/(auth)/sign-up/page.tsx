@@ -1,6 +1,5 @@
-import { redirect } from "next/navigation";
+import { signIn } from "@/lib/auth";
 
-export default function SignUpPage() {
-  // Registration is handled by Keycloak — redirect to sign-in
-  redirect("/sign-in");
+export default async function SignUpPage() {
+  await signIn("keycloak", { redirectTo: "/" });
 }

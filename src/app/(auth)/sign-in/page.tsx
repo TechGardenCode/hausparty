@@ -1,12 +1,11 @@
-import { redirect } from "next/navigation";
+import { signIn } from "@/lib/auth";
 
 export default async function SignInPage({
   searchParams,
 }: {
-  searchParams: Promise<{ callbackUrl?: string }>;
+  searchParams: Promise<{ callbackUrl?: string; redirect?: string }>;
 }) {
-  const { callbackUrl } = await searchParams;
-  const params = new URLSearchParams();
-  if (callbackUrl) params.set("callbackUrl", callbackUrl);
-  redirect(`/api/auth/signin${params.toString() ? `?${params}` : ""}`);
+  const { callbackUrl, redirect: redirectParam } = await searchParams;
+  const redirectTo = callbackUrl || redirectParam || "/";
+  await signIn("keycloak", { redirectTo });
 }
