@@ -7,16 +7,18 @@ export const metadata: Metadata = {
 };
 
 interface Props {
-  searchParams: Promise<{ page?: string }>;
+  searchParams: Promise<{ page?: string; status?: string }>;
 }
 
 const PAGE_SIZE = 25;
 
 export default async function AdminSetsPage({ searchParams }: Props) {
-  const { page } = await searchParams;
+  const { page, status } = await searchParams;
   const currentPage = Math.max(1, parseInt(page || "1", 10) || 1);
+  const statusFilter =
+    status === "draft" || status === "published" ? status : undefined;
   const [{ sets, total, pageSize }, allGenres] = await Promise.all([
-    getAdminSets(currentPage, PAGE_SIZE),
+    getAdminSets(currentPage, PAGE_SIZE, statusFilter),
     getAllGenres(),
   ]);
   const totalPages = Math.ceil(total / pageSize);
@@ -28,6 +30,7 @@ export default async function AdminSetsPage({ searchParams }: Props) {
       currentPage={currentPage}
       totalPages={totalPages}
       allGenres={allGenres}
+      statusFilter={statusFilter}
     />
   );
 }

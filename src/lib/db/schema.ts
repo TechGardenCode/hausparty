@@ -24,6 +24,7 @@ export const mediaTypeEnum = pgEnum("media_type", ["video", "audio"]);
 export const followTargetEnum = pgEnum("follow_target", ["artist", "festival", "genre"]);
 export const submissionStatusEnum = pgEnum("submission_status", ["pending", "approved", "rejected"]);
 export const userRoleEnum = pgEnum("user_role", ["viewer", "artist", "festival_manager", "site_admin"]);
+export const setStatusEnum = pgEnum("set_status", ["draft", "published"]);
 export const scraperStatusEnum = pgEnum("scraper_status", ["running", "completed", "failed"]);
 
 // ============================================================
@@ -105,6 +106,7 @@ export const sets = pgTable(
     stage: text("stage"),
     performedAt: timestamp("performed_at"),
     durationSeconds: integer("duration_seconds"),
+    status: setStatusEnum("status").notNull().default("published"),
     createdAt: timestamp("created_at").notNull().defaultNow(),
   },
   (t) => [index("idx_sets_performed_at").on(t.performedAt)]

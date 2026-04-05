@@ -14,7 +14,7 @@ import {
 import { eq, desc, ilike, inArray, count, isNull } from "drizzle-orm";
 
 export async function getAdminStats() {
-  const [setsResult, artistsResult, pendingResult, noEventResult] =
+  const [setsResult, artistsResult, pendingResult, noEventResult, draftResult] =
     await Promise.all([
       db.select({ count: count() }).from(sets),
       db.select({ count: count() }).from(artists),
@@ -26,6 +26,10 @@ export async function getAdminStats() {
         .select({ count: count() })
         .from(sets)
         .where(isNull(sets.eventId)),
+      db
+        .select({ count: count() })
+        .from(sets)
+        .where(eq(sets.status, "draft")),
     ]);
 
   // Sets without genres: count sets that have zero genre joins
@@ -43,6 +47,7 @@ export async function getAdminStats() {
     pendingSubmissions: pendingResult[0]?.count ?? 0,
     setsWithoutGenres: Math.max(0, setsWithoutGenres),
     setsWithoutEvents: noEventResult[0]?.count ?? 0,
+    draftSets: draftResult[0]?.count ?? 0,
   };
 }
 
@@ -77,12 +82,22 @@ export async function getSubmissions(filters?: { status?: string }) {
   }));
 }
 
-export async function getAdminSets(page: number, pageSize: number) {
+export async function getAdminSets(
+  page: number,
+  pageSize: number,
+  statusFilter?: "draft" | "published"
+) {
   const offset = (page - 1) * pageSize;
 
-  const [totalResult] = await db.select({ count: count() }).from(sets);
+  const whereClause = statusFilter ? eq(sets.status, statusFilter) : undefined;
+
+  const [totalResult] = await db
+    .select({ count: count() })
+    .from(sets)
+    .where(whereClause);
 
   const data = await db.query.sets.findMany({
+    where: whereClause,
     with: {
       setArtists: { with: { artist: true } },
       setGenres: { with: { genre: true } },
@@ -99,6 +114,7 @@ export async function getAdminSets(page: number, pageSize: number) {
       id: s.id,
       title: s.title,
       slug: s.slug,
+      status: s.status,
       created_at: s.createdAt,
       performed_at: s.performedAt,
       artists: (s.setArtists ?? [])

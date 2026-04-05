@@ -1,6 +1,6 @@
 import { db } from "@/lib/db";
 import { sets, setArtists, setGenres } from "@/lib/db/schema";
-import { eq, desc, asc, inArray } from "drizzle-orm";
+import { eq, desc, asc, inArray, and } from "drizzle-orm";
 import { getYouTubeThumbnail } from "@/lib/utils";
 
 const setWithRelations = {
@@ -17,6 +17,7 @@ const setWithRelationsDetailed = {
 
 export async function getTrendingSets(limit = 10) {
   const data = await db.query.sets.findMany({
+    where: eq(sets.status, "published"),
     with: setWithRelations,
     orderBy: [desc(sets.performedAt)],
     limit,
@@ -27,6 +28,7 @@ export async function getTrendingSets(limit = 10) {
 
 export async function getNewSets(limit = 10) {
   const data = await db.query.sets.findMany({
+    where: eq(sets.status, "published"),
     with: setWithRelations,
     orderBy: [desc(sets.createdAt)],
     limit,
@@ -57,7 +59,7 @@ export async function getSetsByArtist(artistId: string) {
   const setIds = artistSets.map((s) => s.setId);
 
   const data = await db.query.sets.findMany({
-    where: inArray(sets.id, setIds),
+    where: and(inArray(sets.id, setIds), eq(sets.status, "published")),
     with: setWithRelations,
     orderBy: [desc(sets.performedAt)],
   });
@@ -67,7 +69,7 @@ export async function getSetsByArtist(artistId: string) {
 
 export async function getSetsByEvent(eventId: string) {
   const data = await db.query.sets.findMany({
-    where: eq(sets.eventId, eventId),
+    where: and(eq(sets.eventId, eventId), eq(sets.status, "published")),
     with: setWithRelations,
     orderBy: [asc(sets.performedAt)],
   });
@@ -93,7 +95,7 @@ export async function getSetsByGenre(genreId: string, page = 1, perPage = 20) {
   const setIds = genreSets.map((s) => s.setId);
 
   const data = await db.query.sets.findMany({
-    where: inArray(sets.id, setIds),
+    where: and(inArray(sets.id, setIds), eq(sets.status, "published")),
     with: setWithRelations,
     orderBy: [desc(sets.performedAt)],
     limit: perPage,
@@ -129,6 +131,7 @@ export function normalizeSet(row: any) {
     id: row.id,
     title: row.title,
     slug: row.slug,
+    status: row.status ?? "published",
     performed_at: row.performedAt,
     duration_seconds: row.durationSeconds,
     stage: row.stage,

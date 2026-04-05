@@ -15,6 +15,13 @@
       "when": 1775412375843,
       "tag": "0001_seed-data",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1775423512822,
+      "tag": "0002_aromatic_marvel_zombies",
+      "breakpoints": true
     }
   ]
 }

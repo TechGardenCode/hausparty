@@ -41,6 +41,7 @@ export type MediaType = "video" | "audio";
 export type FollowTarget = "artist" | "festival" | "genre";
 export type SubmissionStatus = "pending" | "approved" | "rejected";
 export type UserRole = "viewer" | "artist" | "festival_manager" | "site_admin";
+export type SetStatus = "draft" | "published";
 export type ScraperStatus = "running" | "completed" | "failed";
 
 // Joined query result shapes

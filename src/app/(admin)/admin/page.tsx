@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Disc3, Users, Inbox, AlertTriangle, Calendar, Download } from "lucide-react";
+import { Disc3, Users, Inbox, AlertTriangle, Calendar, Download, FileEdit } from "lucide-react";
 import { getAdminStats, getLastScraperRun } from "@/lib/queries/admin";
 import { RefreshSearchButton } from "./refresh-search-button";
 import type { Metadata } from "next";
@@ -26,6 +26,13 @@ export default async function AdminDashboardPage() {
       value: stats.totalArtists,
       icon: Users,
       href: "/admin/artists",
+    },
+    {
+      label: "Draft Sets",
+      value: stats.draftSets,
+      icon: FileEdit,
+      href: "/admin/sets?status=draft",
+      highlight: stats.draftSets > 0,
     },
     {
       label: "Pending Submissions",

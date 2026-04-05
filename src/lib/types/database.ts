@@ -21,6 +21,7 @@ export type {
   FollowTarget,
   SubmissionStatus,
   UserRole,
+  SetStatus,
   ScraperStatus,
   SetWithDetails,
   ArtistWithGenres,

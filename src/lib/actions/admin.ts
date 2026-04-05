@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { eq, sql } from "drizzle-orm";
+import { eq, sql, inArray } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { requireAdmin } from "@/lib/auth-helpers";
 import {
@@ -241,6 +241,38 @@ export async function findDuplicateArtists(threshold?: number) {
   );
 
   return [...result] as { artist1_id: string; artist1_name: string; artist2_id: string; artist2_name: string; sim: number }[];
+}
+
+export async function publishSets(ids: string[]) {
+  await requireAdmin();
+
+  if (ids.length === 0) return;
+
+  await db
+    .update(sets)
+    .set({ status: "published" })
+    .where(inArray(sets.id, ids));
+
+  await db.execute(sql`SELECT refresh_search_view()`);
+
+  revalidatePath("/admin/sets");
+  revalidatePath("/admin");
+}
+
+export async function unpublishSets(ids: string[]) {
+  await requireAdmin();
+
+  if (ids.length === 0) return;
+
+  await db
+    .update(sets)
+    .set({ status: "draft" })
+    .where(inArray(sets.id, ids));
+
+  await db.execute(sql`SELECT refresh_search_view()`);
+
+  revalidatePath("/admin/sets");
+  revalidatePath("/admin");
 }
 
 export async function refreshSearchIndex() {

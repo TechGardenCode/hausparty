@@ -217,4 +217,9 @@ INSERT INTO tracklist_entries (set_id, position, title, timestamp_seconds) VALUE
   ('e0000000-0000-0000-0000-000000000015', 4, 'Four Tet - Parallel', 1680),
   ('e0000000-0000-0000-0000-000000000015', 5, 'Joy Orbison - Hyph Mngo', 2400);
 --> statement-breakpoint
+-- Admin user roles (Keycloak UUIDs from hausparty realm)
+INSERT INTO user_roles (user_id, role) VALUES
+  ('8ced8d82-47ca-4aa8-9f12-9d36823cc679', 'site_admin'),  -- techgardencode
+  ('7547fea0-9398-467d-bf03-79cad08e3025', 'site_admin');   -- techgardenadmin
+--> statement-breakpoint
 REFRESH MATERIALIZED VIEW sets_search;
