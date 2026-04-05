@@ -4,27 +4,24 @@ import { eq, sql } from "drizzle-orm";
 import { upsertEvent } from "./upsert";
 import type { Scraper, ScraperStats } from "./types";
 
+const STATS_FLUSH_INTERVAL = 25;
+
 /**
  * Orchestrates a scraper run: tracks progress in scraper_runs,
  * processes items sequentially with per-item error handling,
- * and refreshes the search view when done.
+ * flushes stats incrementally, and refreshes the search view when done.
  */
 export class ScraperRunner {
-  async run(
+  /**
+   * Run a scraper using a pre-created scraper_runs row.
+   * The caller is responsible for creating the row and passing the runId.
+   * This allows fire-and-forget execution from server actions.
+   */
+  async runWithId(
+    runId: string,
     scraper: Scraper,
     params: Record<string, string>
   ): Promise<{ runId: string; stats: ScraperStats }> {
-    // Create scraper_runs row
-    const [run] = await db
-      .insert(scraperRuns)
-      .values({
-        scraperName: scraper.name,
-        status: "running",
-        params,
-      })
-      .returning({ id: scraperRuns.id });
-
-    const runId = run.id;
     const stats: ScraperStats = {
       fetched: 0,
       created: 0,
@@ -33,26 +30,39 @@ export class ScraperRunner {
       errors: 0,
     };
 
+    let processed = 0;
+
     try {
       const rawItems = await scraper.fetch(params);
       stats.fetched = rawItems.length;
+
+      // Flush fetched count immediately so UI knows the total
+      await this.flushStats(runId, stats);
 
       for (const raw of rawItems) {
         try {
           const normalized = scraper.normalize(raw);
           if (!normalized) {
             stats.skipped++;
+            processed++;
             continue;
           }
 
           const result = await upsertEvent(scraper.name, normalized);
           stats[result.action]++;
+          processed++;
         } catch (itemError) {
           stats.errors++;
+          processed++;
           console.error(
             `[${scraper.name}] Error processing item:`,
             itemError
           );
+        }
+
+        // Flush stats periodically
+        if (processed % STATS_FLUSH_INTERVAL === 0) {
+          await this.flushStats(runId, stats);
         }
       }
 
@@ -85,5 +95,36 @@ export class ScraperRunner {
     }
 
     return { runId, stats };
+  }
+
+  /**
+   * Run a scraper, creating its own scraper_runs row.
+   * Used for direct invocation (tests, CLI). For server actions, use runWithId.
+   */
+  async run(
+    scraper: Scraper,
+    params: Record<string, string>
+  ): Promise<{ runId: string; stats: ScraperStats }> {
+    const [run] = await db
+      .insert(scraperRuns)
+      .values({
+        scraperName: scraper.name,
+        status: "running",
+        params,
+      })
+      .returning({ id: scraperRuns.id });
+
+    return this.runWithId(run.id, scraper, params);
+  }
+
+  private async flushStats(runId: string, stats: ScraperStats): Promise<void> {
+    try {
+      await db
+        .update(scraperRuns)
+        .set({ stats })
+        .where(eq(scraperRuns.id, runId));
+    } catch {
+      // Non-fatal — stats flush failure shouldn't abort the run
+    }
   }
 }
