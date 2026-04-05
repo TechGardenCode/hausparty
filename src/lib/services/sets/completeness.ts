@@ -96,9 +96,10 @@ export async function evaluateAndUpdateStatus(
 /**
  * Re-evaluate status and refresh search view if status changed to published.
  */
-export async function evaluateAndRefreshIfPublished(setId: string): Promise<void> {
+export async function evaluateAndRefreshIfPublished(setId: string): Promise<"draft" | "published"> {
   const newStatus = await evaluateAndUpdateStatus(setId);
   if (newStatus === "published") {
     await db.execute(sql`SELECT refresh_search_view()`);
   }
+  return newStatus;
 }

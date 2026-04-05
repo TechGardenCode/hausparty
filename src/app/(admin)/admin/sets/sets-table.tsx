@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Pencil } from "lucide-react";
+import { AdminPagination } from "@/components/admin-pagination";
 import { formatRelativeDate } from "@/lib/utils";
 import { useToast } from "@/components/toast";
 import { bulkAssignGenre, publishSets, unpublishSets } from "@/lib/actions/admin";
@@ -283,30 +284,11 @@ export function SetsTable({ sets, total, currentPage, totalPages, allGenres, sta
         </table>
       </div>
 
-      {/* Pagination */}
-      {totalPages > 1 && (
-        <div className="flex items-center justify-center gap-3">
-          {currentPage > 1 && (
-            <Link
-              href={buildPageUrl(currentPage - 1)}
-              className="rounded border border-border-subtle px-3 py-1.5 text-sm text-text-secondary transition-colors hover:bg-bg-surface-hover hover:text-text-primary"
-            >
-              Previous
-            </Link>
-          )}
-          <span className="text-sm text-text-tertiary">
-            Page {currentPage} of {totalPages}
-          </span>
-          {currentPage < totalPages && (
-            <Link
-              href={buildPageUrl(currentPage + 1)}
-              className="rounded border border-border-subtle px-3 py-1.5 text-sm text-text-secondary transition-colors hover:bg-bg-surface-hover hover:text-text-primary"
-            >
-              Next
-            </Link>
-          )}
-        </div>
-      )}
+      <AdminPagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        buildUrl={buildPageUrl}
+      />
     </div>
   );
 }

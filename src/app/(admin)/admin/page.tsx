@@ -1,6 +1,6 @@
 import Link from "next/link";
-import { Disc3, Users, Inbox, AlertTriangle, Calendar, Download, FileEdit } from "lucide-react";
-import { getAdminStats, getLastScraperRun } from "@/lib/queries/admin";
+import { Disc3, Users, Inbox, AlertTriangle, Calendar, Download, FileEdit, Search } from "lucide-react";
+import { getAdminStats, getLastScraperRun, getPendingDiscoveryCount } from "@/lib/queries/admin";
 import { RefreshSearchButton } from "./refresh-search-button";
 import type { Metadata } from "next";
 
@@ -9,9 +9,10 @@ export const metadata: Metadata = {
 };
 
 export default async function AdminDashboardPage() {
-  const [stats, lastRun] = await Promise.all([
+  const [stats, lastRun, pendingDiscovery] = await Promise.all([
     getAdminStats(),
     getLastScraperRun(),
+    getPendingDiscoveryCount(),
   ]);
 
   const cards = [
@@ -54,6 +55,13 @@ export default async function AdminDashboardPage() {
       icon: Calendar,
       href: "/admin/sets",
       warning: stats.setsWithoutEvents > 0,
+    },
+    {
+      label: "Pending Discovery",
+      value: pendingDiscovery,
+      icon: Search,
+      href: "/admin/discovery",
+      highlight: pendingDiscovery > 0,
     },
     {
       label: "Last Scraper Run",

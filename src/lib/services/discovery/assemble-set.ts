@@ -23,6 +23,7 @@ export interface AssembleOptions {
 export interface AssembleResult {
   setId: string;
   action: "created" | "duplicate" | "added_source";
+  status: "draft" | "published";
 }
 
 /**
@@ -59,7 +60,7 @@ export async function assembleSetFromUrl(
     .limit(1);
 
   if (existingSource) {
-    return { setId: existingSource.setId, action: "duplicate" };
+    return { setId: existingSource.setId, action: "duplicate", status: "draft" };
   }
 
   // 3. Fetch OEmbed metadata
@@ -83,8 +84,8 @@ export async function assembleSetFromUrl(
     if (existingSet) {
       // Add source to existing set
       await createSource(existingSet, platform, normalizedUrl, sourceType);
-      await evaluateAndRefreshIfPublished(existingSet);
-      return { setId: existingSet, action: "added_source" };
+      const status = await evaluateAndRefreshIfPublished(existingSet);
+      return { setId: existingSet, action: "added_source", status };
     }
   }
 
@@ -110,9 +111,9 @@ export async function assembleSetFromUrl(
   await inferGenresForSet(setId, [artistId]);
 
   // 9. Completeness scoring (may auto-publish)
-  await evaluateAndRefreshIfPublished(setId);
+  const finalStatus = await evaluateAndRefreshIfPublished(setId);
 
-  return { setId, action: "created" };
+  return { setId, action: "created", status: finalStatus };
 }
 
 async function fetchMetadata(url: string, platform: Platform) {

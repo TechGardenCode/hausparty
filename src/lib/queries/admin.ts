@@ -5,13 +5,15 @@ import {
   genres,
   festivals,
   events,
+  eventArtists,
+  setArtists,
   submissions,
   setGenres,
   artistGenres,
   scraperRuns,
   scraperEntityMap,
 } from "@/lib/db/schema";
-import { eq, desc, ilike, inArray, count, isNull } from "drizzle-orm";
+import { eq, desc, ilike, inArray, count, isNull, and, sql } from "drizzle-orm";
 
 export async function getAdminStats() {
   const [setsResult, artistsResult, pendingResult, noEventResult, draftResult] =
@@ -437,4 +439,137 @@ export async function getAdminArtists(page: number, pageSize: number) {
     page,
     pageSize,
   };
+}
+
+// ============================================================
+// DISCOVERY QUEUE
+// ============================================================
+
+export interface DiscoveryQueueItem {
+  artistId: string;
+  artistName: string;
+  artistSlug: string;
+  eventId: string;
+  eventName: string;
+  eventSlug: string;
+  dateStart: string | null;
+  venue: string | null;
+  stage: string | null;
+  festivalId: string | null;
+  festivalName: string | null;
+}
+
+/**
+ * Get event_artists pairs that don't have a corresponding set yet.
+ * These are artists who played at events but no set recording has been linked.
+ */
+export async function getDiscoveryQueue(
+  page: number,
+  pageSize: number
+): Promise<{ items: DiscoveryQueueItem[]; total: number }> {
+  const offset = (page - 1) * pageSize;
+
+  // Subquery: event_artists that already have a matching set
+  const matchedPairs = db
+    .select({
+      artistId: setArtists.artistId,
+      eventId: sets.eventId,
+    })
+    .from(setArtists)
+    .innerJoin(sets, eq(sets.id, setArtists.setId))
+    .where(sql`${sets.eventId} IS NOT NULL`)
+    .as("matched_pairs");
+
+  // Count total unmatched pairs
+  const [totalResult] = await db
+    .select({ count: count() })
+    .from(eventArtists)
+    .leftJoin(
+      matchedPairs,
+      and(
+        eq(eventArtists.artistId, matchedPairs.artistId),
+        eq(eventArtists.eventId, matchedPairs.eventId)
+      )
+    )
+    .where(isNull(matchedPairs.artistId));
+
+  // Fetch the page
+  const rows = await db
+    .select({
+      artistId: artists.id,
+      artistName: artists.name,
+      artistSlug: artists.slug,
+      eventId: events.id,
+      eventName: events.name,
+      eventSlug: events.slug,
+      dateStart: events.dateStart,
+      venue: events.venue,
+      stage: eventArtists.stage,
+      festivalId: events.festivalId,
+    })
+    .from(eventArtists)
+    .innerJoin(artists, eq(artists.id, eventArtists.artistId))
+    .innerJoin(events, eq(events.id, eventArtists.eventId))
+    .leftJoin(
+      matchedPairs,
+      and(
+        eq(eventArtists.artistId, matchedPairs.artistId),
+        eq(eventArtists.eventId, matchedPairs.eventId)
+      )
+    )
+    .where(isNull(matchedPairs.artistId))
+    .orderBy(desc(events.dateStart))
+    .limit(pageSize)
+    .offset(offset);
+
+  // Fetch festival names
+  const festivalIds = [...new Set(rows.filter((r) => r.festivalId).map((r) => r.festivalId!))];
+  const festivalMap = new Map<string, string>();
+
+  if (festivalIds.length > 0) {
+    const festivalRows = await db
+      .select({ id: festivals.id, name: festivals.name })
+      .from(festivals)
+      .where(inArray(festivals.id, festivalIds));
+    for (const f of festivalRows) {
+      festivalMap.set(f.id, f.name);
+    }
+  }
+
+  return {
+    items: rows.map((r) => ({
+      ...r,
+      festivalName: r.festivalId ? festivalMap.get(r.festivalId) ?? null : null,
+    })),
+    total: totalResult?.count ?? 0,
+  };
+}
+
+/**
+ * Count of event_artists pairs without matching sets.
+ */
+export async function getPendingDiscoveryCount(): Promise<number> {
+  const matchedPairs = db
+    .select({
+      artistId: setArtists.artistId,
+      eventId: sets.eventId,
+    })
+    .from(setArtists)
+    .innerJoin(sets, eq(sets.id, setArtists.setId))
+    .where(sql`${sets.eventId} IS NOT NULL`)
+    .as("matched_pairs");
+
+  const [result] = await db
+    .select({ count: count() })
+    .from(eventArtists)
+    .leftJoin(
+      matchedPairs,
+      and(
+        eq(eventArtists.artistId, matchedPairs.artistId),
+        eq(eventArtists.eventId, matchedPairs.eventId)
+      )
+    )
+    .where(isNull(matchedPairs.artistId));
+
+  return result?.count ?? 0;
 }

@@ -2,20 +2,27 @@
 
 import { useEffect, useRef, useState, useCallback } from "react";
 import Link from "next/link";
-import { Library, Settings, LogOut } from "lucide-react";
+import { Library, Settings, LogOut, Shield } from "lucide-react";
 import { signOutAction } from "@/lib/actions/auth";
 
 interface AvatarMenuProps {
   email: string;
   initials: string;
+  isAdmin?: boolean;
 }
 
-const menuItems = [
+const baseMenuItems = [
   { label: "Library", href: "/library", icon: Library },
   { label: "Settings", href: "/settings", icon: Settings },
 ] as const;
 
-export function AvatarMenu({ email, initials }: AvatarMenuProps) {
+const adminMenuItem = { label: "Admin", href: "/admin", icon: Shield } as const;
+
+export function AvatarMenu({ email, initials, isAdmin = false }: AvatarMenuProps) {
+  const menuItems = isAdmin
+    ? [adminMenuItem, ...baseMenuItems]
+    : baseMenuItems;
+
   const [open, setOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);

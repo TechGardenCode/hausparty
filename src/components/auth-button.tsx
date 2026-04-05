@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { auth } from "@/lib/auth";
+import { isAdmin } from "@/lib/auth-helpers";
 import { AvatarMenu } from "./avatar-menu";
 
 export async function AuthButton() {
@@ -8,7 +9,8 @@ export async function AuthButton() {
 
   if (user) {
     const initials = (user.email || "U")[0].toUpperCase();
-    return <AvatarMenu email={user.email || ""} initials={initials} />;
+    const admin = user.id ? await isAdmin(user.id) : false;
+    return <AvatarMenu email={user.email || ""} initials={initials} isAdmin={admin} />;
   }
 
   return (
