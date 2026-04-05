@@ -5,15 +5,15 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1743868800000,
-      "tag": "0000_initial_schema",
+      "when": 1775412360575,
+      "tag": "0000_initial-schema",
       "breakpoints": true
     },
     {
       "idx": 1,
       "version": "7",
-      "when": 1743868801000,
-      "tag": "0001_seed_data",
+      "when": 1775412375843,
+      "tag": "0001_seed-data",
       "breakpoints": true
     }
   ]
