@@ -1,9 +1,3 @@
--- Initial schema for hausparty (standalone PostgreSQL, no Supabase)
--- Auth handled by Keycloak; user_id columns are Keycloak subject UUIDs.
-
--- Enums
-
---> statement-breakpoint
 CREATE TYPE "platform" AS ENUM ('youtube', 'soundcloud');
 
 --> statement-breakpoint
@@ -24,7 +18,6 @@ CREATE TYPE "user_role" AS ENUM ('viewer', 'artist', 'festival_manager', 'site_a
 --> statement-breakpoint
 CREATE TYPE "scraper_status" AS ENUM ('running', 'completed', 'failed');
 
--- Content tables
 
 --> statement-breakpoint
 CREATE TABLE "genres" (
@@ -144,7 +137,6 @@ CREATE TABLE "tracklist_entries" (
   "created_at" timestamptz NOT NULL DEFAULT now()
 );
 
--- User-scoped tables (user_id = Keycloak subject UUID, no FK constraint)
 
 --> statement-breakpoint
 CREATE TABLE "saved_sets" (
@@ -223,7 +215,6 @@ CREATE TABLE "user_settings" (
   "updated_at" timestamptz NOT NULL DEFAULT now()
 );
 
--- Scraper infrastructure
 
 --> statement-breakpoint
 CREATE TABLE "scraper_runs" (
@@ -251,7 +242,6 @@ CREATE TABLE "scraper_entity_map" (
   UNIQUE ("scraper_name", "external_id", "entity_type")
 );
 
--- Indexes
 
 --> statement-breakpoint
 CREATE INDEX "idx_artists_name_trgm" ON "artists" USING gin ("name" gin_trgm_ops);
@@ -295,7 +285,6 @@ CREATE INDEX "idx_user_roles_user" ON "user_roles" ("user_id");
 --> statement-breakpoint
 CREATE INDEX "idx_scraper_runs_name_started" ON "scraper_runs" ("scraper_name", "started_at" DESC);
 
--- Full-text search materialized view
 
 --> statement-breakpoint
 CREATE MATERIALIZED VIEW "sets_search" AS
@@ -339,7 +328,6 @@ CREATE INDEX "idx_sets_search_trgm" ON "sets_search" USING gin ("search_text" gi
 --> statement-breakpoint
 CREATE UNIQUE INDEX "sets_search_set_id_idx" ON "sets_search" ("set_id");
 
--- RPC functions
 
 --> statement-breakpoint
 CREATE OR REPLACE FUNCTION refresh_search_view()

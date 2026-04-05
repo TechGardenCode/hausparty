@@ -1,10 +1,3 @@
--- hausparty seed data (real links edition)
-
--- ============================================================
--- GENRES
--- ============================================================
-
---> statement-breakpoint
 INSERT INTO genres (id, name, slug) VALUES
   ('a0000000-0000-0000-0000-000000000001', 'Techno', 'techno'),
   ('a0000000-0000-0000-0000-000000000002', 'House', 'house'),
@@ -18,9 +11,6 @@ INSERT INTO genres (id, name, slug) VALUES
   ('a0000000-0000-0000-0000-000000000010', 'Hardcore', 'hardcore'),
   ('a0000000-0000-0000-0000-000000000011', 'Hard Dance', 'hard-dance');
 
--- ============================================================
--- ARTISTS
--- ============================================================
 
 --> statement-breakpoint
 INSERT INTO artists (id, name, slug, aliases, bio, socials) VALUES
@@ -37,12 +27,9 @@ INSERT INTO artists (id, name, slug, aliases, bio, socials) VALUES
   ('b0000000-0000-0000-0000-000000000011', 'Adam Beyer', 'adam-beyer', '{}', 'Swedish techno DJ and Drumcode label boss.', '{"instagram": "realadambeyer", "soundcloud": "adambeyer"}'),
   ('b0000000-0000-0000-0000-000000000012', 'Calvin Harris', 'calvin-harris', '{"Adam Wiles", "Love Regenerator"}', 'Scottish DJ and producer, highest-paid DJ for multiple years.', '{"instagram": "calvinharris", "soundcloud": "calvinharris"}'),
   ('b0000000-0000-0000-0000-000000000013', 'Fred Again..', 'fred-again', '{"Fred Gibson"}', 'British producer and DJ known for sampling voice notes and live emotional sets.', '{"instagram": "fredagainagainagainagainagain", "soundcloud": "fredagain"}'),
-  ('b0000000-0000-0000-0000-000000000014', 'Headhunterz', 'headhunterz', '{"Willem Rebergen"}', 'Dutch hardstyle DJ and producer, one of the genre''s most iconic artists.', '{"instagram": "headhunterz", "soundcloud": "headhunterz"}'),
+  ('b0000000-0000-0000-0000-000000000014', 'Headhunterz', 'headhunterz', '{"Willem Rebergen"}', 'Dutch hardstyle DJ and producer, one of the genres most iconic artists.', '{"instagram": "headhunterz", "soundcloud": "headhunterz"}'),
   ('b0000000-0000-0000-0000-000000000015', 'Brennan Heart', 'brennan-heart', '{"Fabian Bohn"}', 'Dutch hardstyle DJ, producer, and I AM HARDSTYLE label founder.', '{"instagram": "brennanheart", "soundcloud": "brennanheart"}');
 
--- ============================================================
--- ARTIST GENRES
--- ============================================================
 
 --> statement-breakpoint
 INSERT INTO artist_genres (artist_id, genre_id) VALUES
@@ -67,21 +54,15 @@ INSERT INTO artist_genres (artist_id, genre_id) VALUES
   ('b0000000-0000-0000-0000-000000000014', 'a0000000-0000-0000-0000-000000000011'), -- Headhunterz → Hard Dance
   ('b0000000-0000-0000-0000-000000000015', 'a0000000-0000-0000-0000-000000000011'); -- Brennan Heart → Hard Dance
 
--- ============================================================
--- FESTIVALS
--- ============================================================
 
 --> statement-breakpoint
 INSERT INTO festivals (id, name, slug, description) VALUES
-  ('c0000000-0000-0000-0000-000000000001', 'Tomorrowland', 'tomorrowland', 'The world''s most iconic electronic music festival, held in Boom, Belgium since 2005.'),
+  ('c0000000-0000-0000-0000-000000000001', 'Tomorrowland', 'tomorrowland', 'The worlds most iconic electronic music festival, held in Boom, Belgium since 2005.'),
   ('c0000000-0000-0000-0000-000000000002', 'Ultra Music Festival', 'ultra-music-festival', 'Premier electronic music festival in Miami, showcasing the biggest names in EDM since 1999.'),
   ('c0000000-0000-0000-0000-000000000003', 'Boiler Room', 'boiler-room', 'Global underground music platform broadcasting DJ sets from studios, clubs, and festivals worldwide.'),
-  ('c0000000-0000-0000-0000-000000000004', 'Awakenings', 'awakenings', 'The Netherlands'' premier techno festival and event series, running since 1997.'),
-  ('c0000000-0000-0000-0000-000000000005', 'Qlimax', 'qlimax', 'The world''s biggest indoor hardstyle event, produced by Q-dance in the Netherlands.');
+  ('c0000000-0000-0000-0000-000000000004', 'Awakenings', 'awakenings', 'The Netherlands premier techno festival and event series, running since 1997.'),
+  ('c0000000-0000-0000-0000-000000000005', 'Qlimax', 'qlimax', 'The worlds biggest indoor hardstyle event, produced by Q-dance in the Netherlands.');
 
--- ============================================================
--- FESTIVAL GENRES
--- ============================================================
 
 --> statement-breakpoint
 INSERT INTO festival_genres (festival_id, genre_id) VALUES
@@ -99,9 +80,6 @@ INSERT INTO festival_genres (festival_id, genre_id) VALUES
   ('c0000000-0000-0000-0000-000000000005', 'a0000000-0000-0000-0000-000000000011'), -- Qlimax → Hard Dance
   ('c0000000-0000-0000-0000-000000000005', 'a0000000-0000-0000-0000-000000000010'); -- Qlimax → Hardcore
 
--- ============================================================
--- EVENTS
--- ============================================================
 
 --> statement-breakpoint
 INSERT INTO events (id, name, slug, festival_id, date_start, date_end, location, stages) VALUES
@@ -115,9 +93,6 @@ INSERT INTO events (id, name, slug, festival_id, date_start, date_end, location,
   ('d0000000-0000-0000-0000-000000000008', 'Awakenings x Drumcode ADE 2024', 'awakenings-drumcode-ade-2024', 'c0000000-0000-0000-0000-000000000004', '2024-10-17', '2024-10-17', 'Gashouder, Amsterdam, Netherlands', '{"Main"}'),
   ('d0000000-0000-0000-0000-000000000009', 'Qlimax 2024', 'qlimax-2024', 'c0000000-0000-0000-0000-000000000005', '2024-11-23', '2024-11-23', 'Gelredome, Arnhem, Netherlands', '{"Main"}');
 
--- ============================================================
--- SETS (20 sets)
--- ============================================================
 
 --> statement-breakpoint
 INSERT INTO sets (id, title, slug, event_id, stage, performed_at, duration_seconds) VALUES
@@ -142,9 +117,6 @@ INSERT INTO sets (id, title, slug, event_id, stage, performed_at, duration_secon
   ('e0000000-0000-0000-0000-000000000019', 'Headhunterz at Qlimax 2024', 'headhunterz-qlimax-2024', 'd0000000-0000-0000-0000-000000000009', 'Main', '2024-11-23 22:00:00+00', 3600),
   ('e0000000-0000-0000-0000-000000000020', 'Brennan Heart at Qlimax 2024', 'brennan-heart-qlimax-2024', 'd0000000-0000-0000-0000-000000000009', 'Main', '2024-11-23 20:00:00+00', 3600);
 
--- ============================================================
--- SET ARTISTS
--- ============================================================
 
 --> statement-breakpoint
 INSERT INTO set_artists (set_id, artist_id, position) VALUES
@@ -169,9 +141,6 @@ INSERT INTO set_artists (set_id, artist_id, position) VALUES
   ('e0000000-0000-0000-0000-000000000019', 'b0000000-0000-0000-0000-000000000014', 0),
   ('e0000000-0000-0000-0000-000000000020', 'b0000000-0000-0000-0000-000000000015', 0);
 
--- ============================================================
--- SET GENRES
--- ============================================================
 
 --> statement-breakpoint
 INSERT INTO set_genres (set_id, genre_id) VALUES
@@ -201,64 +170,37 @@ INSERT INTO set_genres (set_id, genre_id) VALUES
   ('e0000000-0000-0000-0000-000000000019', 'a0000000-0000-0000-0000-000000000011'), -- Headhunterz → Hard Dance
   ('e0000000-0000-0000-0000-000000000020', 'a0000000-0000-0000-0000-000000000011'); -- Brennan Heart → Hard Dance
 
--- ============================================================
--- SOURCES (real YouTube + SoundCloud links)
--- ============================================================
 
 --> statement-breakpoint
 INSERT INTO sources (id, set_id, platform, url, source_type, media_type, quality, embed_supported, is_active) VALUES
-  -- Set 1: Amelie Lens @ Tomorrowland 2024 W1
   ('f0000000-0000-0000-0000-000000000001', 'e0000000-0000-0000-0000-000000000001', 'youtube', 'https://www.youtube.com/watch?v=vjR_gc6c1xw', 'official', 'video', 'HD', true, true),
   ('f0000000-0000-0000-0000-000000000002', 'e0000000-0000-0000-0000-000000000001', 'soundcloud', 'https://soundcloud.com/amelielens/amelie-lens-presents-exhale-radio-121-live-from-tomorrowland-2024', 'artist', 'audio', 'HQ', true, true),
-  -- Set 2: Charlotte de Witte @ Tomorrowland Brasil 2024
   ('f0000000-0000-0000-0000-000000000003', 'e0000000-0000-0000-0000-000000000002', 'youtube', 'https://www.youtube.com/watch?v=LbHM-cSSn74', 'official', 'video', 'HD', true, true),
   ('f0000000-0000-0000-0000-000000000004', 'e0000000-0000-0000-0000-000000000002', 'soundcloud', 'https://soundcloud.com/charlottedewittemusic/tomorrowland-brasil-closing-main-stage-2024', 'artist', 'audio', 'HQ', true, true),
-  -- Set 3: Adam Beyer @ Tomorrowland 2024 W2
   ('f0000000-0000-0000-0000-000000000005', 'e0000000-0000-0000-0000-000000000003', 'youtube', 'https://www.youtube.com/watch?v=7R5yo5FznTI', 'official', 'video', 'HD', true, true),
-  -- Set 4: Adam Beyer @ Awakenings ADE 2024
   ('f0000000-0000-0000-0000-000000000006', 'e0000000-0000-0000-0000-000000000004', 'youtube', 'https://www.youtube.com/watch?v=bvzYeWOCwNg', 'official', 'video', 'HD', true, true),
-  -- Set 5: Hardwell @ Tomorrowland 2024 W2
   ('f0000000-0000-0000-0000-000000000007', 'e0000000-0000-0000-0000-000000000005', 'youtube', 'https://www.youtube.com/watch?v=aT8_wt9HXEU', 'official', 'video', 'HD', true, true),
-  -- Set 6: Hardwell @ Tomorrowland Brasil 2024
   ('f0000000-0000-0000-0000-000000000008', 'e0000000-0000-0000-0000-000000000006', 'youtube', 'https://www.youtube.com/watch?v=sI4n6OCzLpw', 'official', 'video', 'HD', true, true),
-  -- Set 7: Hardwell @ Ultra 2024
   ('f0000000-0000-0000-0000-000000000009', 'e0000000-0000-0000-0000-000000000007', 'youtube', 'https://www.youtube.com/watch?v=w3zCxh-70Ms', 'official', 'video', 'HD', true, true),
-  -- Set 8: Tiesto @ Tomorrowland 2024 W2
   ('f0000000-0000-0000-0000-000000000010', 'e0000000-0000-0000-0000-000000000008', 'youtube', 'https://www.youtube.com/watch?v=BadIgWU9XFU', 'official', 'video', 'HD', true, true),
-  -- Set 9: Tiesto @ Ultra 2024
   ('f0000000-0000-0000-0000-000000000011', 'e0000000-0000-0000-0000-000000000009', 'youtube', 'https://www.youtube.com/watch?v=KO7cYLLFbLw', 'official', 'video', 'HD', true, true),
-  -- Set 10: David Guetta @ Tomorrowland 2024 W2
   ('f0000000-0000-0000-0000-000000000012', 'e0000000-0000-0000-0000-000000000010', 'youtube', 'https://www.youtube.com/watch?v=g7O-7rF0Hqk', 'official', 'video', 'HD', true, true),
-  -- Set 11: David Guetta @ Ultra 2024
   ('f0000000-0000-0000-0000-000000000013', 'e0000000-0000-0000-0000-000000000011', 'youtube', 'https://www.youtube.com/watch?v=_oSRGlOQVL0', 'official', 'video', 'HD', true, true),
-  -- Set 12: Martin Garrix @ Ultra 2024
   ('f0000000-0000-0000-0000-000000000014', 'e0000000-0000-0000-0000-000000000012', 'youtube', 'https://www.youtube.com/watch?v=-OSs746YI90', 'official', 'video', 'HD', true, true),
-  -- Set 13: Armin van Buuren @ Ultra 2024
   ('f0000000-0000-0000-0000-000000000015', 'e0000000-0000-0000-0000-000000000013', 'youtube', 'https://www.youtube.com/watch?v=gnyvzMfADm4', 'official', 'video', 'HD', true, true),
-  -- Set 14: Calvin Harris @ Ultra 2024
   ('f0000000-0000-0000-0000-000000000016', 'e0000000-0000-0000-0000-000000000014', 'youtube', 'https://www.youtube.com/watch?v=PxXAdY8G3G0', 'official', 'video', 'HD', true, true),
-  -- Set 15: Four Tet @ Boiler Room Isolation
   ('f0000000-0000-0000-0000-000000000017', 'e0000000-0000-0000-0000-000000000015', 'youtube', 'https://www.youtube.com/watch?v=oXQi77eOdEY', 'official', 'video', 'HD', true, true),
-  -- Set 16: Peggy Gou @ Boiler Room Isolation
   ('f0000000-0000-0000-0000-000000000018', 'e0000000-0000-0000-0000-000000000016', 'youtube', 'https://www.youtube.com/watch?v=jxcK_wENFgo', 'official', 'video', 'HD', true, true),
   ('f0000000-0000-0000-0000-000000000019', 'e0000000-0000-0000-0000-000000000016', 'soundcloud', 'https://soundcloud.com/platform/peggy-gou-isolation', 'official', 'audio', 'HQ', true, true),
-  -- Set 17: Bicep @ Boiler Room x AVA
   ('f0000000-0000-0000-0000-000000000020', 'e0000000-0000-0000-0000-000000000017', 'youtube', 'https://www.youtube.com/watch?v=wPIFUWOLc2A', 'official', 'video', 'HD', true, true),
   ('f0000000-0000-0000-0000-000000000021', 'e0000000-0000-0000-0000-000000000017', 'soundcloud', 'https://soundcloud.com/platform/bicep', 'official', 'audio', 'HQ', true, true),
-  -- Set 18: Fred Again @ Boiler Room London 2022
   ('f0000000-0000-0000-0000-000000000022', 'e0000000-0000-0000-0000-000000000018', 'youtube', 'https://www.youtube.com/watch?v=c0-hvjV2A5Y', 'official', 'video', 'HD', true, true),
-  -- Set 19: Headhunterz @ Qlimax 2024
   ('f0000000-0000-0000-0000-000000000023', 'e0000000-0000-0000-0000-000000000019', 'youtube', 'https://www.youtube.com/watch?v=jsvmcMbMe-0', 'official', 'video', 'HD', true, true),
-  -- Set 20: Brennan Heart @ Qlimax 2024
   ('f0000000-0000-0000-0000-000000000024', 'e0000000-0000-0000-0000-000000000020', 'youtube', 'https://www.youtube.com/watch?v=tDzPlTy9PLM', 'official', 'video', 'HD', true, true);
 
--- ============================================================
--- TRACKLIST ENTRIES (sample for first 5 sets)
--- ============================================================
 
 --> statement-breakpoint
 INSERT INTO tracklist_entries (set_id, position, title, timestamp_seconds) VALUES
-  -- Amelie Lens @ Tomorrowland 2024 W1
   ('e0000000-0000-0000-0000-000000000001', 1, 'Amelie Lens - Fallen', 0),
   ('e0000000-0000-0000-0000-000000000001', 2, 'Amelie Lens - Stay With Me', 360),
   ('e0000000-0000-0000-0000-000000000001', 3, 'AIROD - Optic', 720),
@@ -269,7 +211,6 @@ INSERT INTO tracklist_entries (set_id, position, title, timestamp_seconds) VALUE
   ('e0000000-0000-0000-0000-000000000001', 8, 'Amelie Lens - Access', 2520),
   ('e0000000-0000-0000-0000-000000000001', 9, 'Farrago - Ritual', 2880),
   ('e0000000-0000-0000-0000-000000000001', 10, 'Amelie Lens & AIROD - Adrenaline', 3240),
-  -- Charlotte de Witte @ Tomorrowland Brasil 2024
   ('e0000000-0000-0000-0000-000000000002', 1, 'Charlotte de Witte - Overdrive', 0),
   ('e0000000-0000-0000-0000-000000000002', 2, 'ONYVAA - Hedera Helix', 360),
   ('e0000000-0000-0000-0000-000000000002', 3, 'Charlotte de Witte - Rave On', 720),
@@ -278,13 +219,11 @@ INSERT INTO tracklist_entries (set_id, position, title, timestamp_seconds) VALUE
   ('e0000000-0000-0000-0000-000000000002', 6, 'Charlotte de Witte - Mercury', 1920),
   ('e0000000-0000-0000-0000-000000000002', 7, 'Charlotte de Witte - Sanctum', 2400),
   ('e0000000-0000-0000-0000-000000000002', 8, 'I Hate Models - Daydream', 2880),
-  -- Adam Beyer @ Tomorrowland 2024 W2
   ('e0000000-0000-0000-0000-000000000003', 1, 'Adam Beyer - Your Mind', 0),
   ('e0000000-0000-0000-0000-000000000003', 2, 'Layton Giordani - Life Moving Forward', 420),
   ('e0000000-0000-0000-0000-000000000003', 3, 'Adam Beyer - Teach Me', 900),
   ('e0000000-0000-0000-0000-000000000003', 4, 'Bart Skils - Roll the Dice', 1380),
   ('e0000000-0000-0000-0000-000000000003', 5, 'Adam Beyer & Ida Engberg - Unanswered', 1800),
-  -- Hardwell @ Tomorrowland 2024 W2
   ('e0000000-0000-0000-0000-000000000005', 1, 'Hardwell - INTO THE UNKNOWN', 0),
   ('e0000000-0000-0000-0000-000000000005', 2, 'Hardwell - REBELS NEVER DIE', 300),
   ('e0000000-0000-0000-0000-000000000005', 3, 'Hardwell & Sub Zero Project - GAME CHANGER', 660),
@@ -292,21 +231,17 @@ INSERT INTO tracklist_entries (set_id, position, title, timestamp_seconds) VALUE
   ('e0000000-0000-0000-0000-000000000005', 5, 'Hardwell - F*CKING SOCIETY', 1380),
   ('e0000000-0000-0000-0000-000000000005', 6, 'Hardwell - PACMAN', 1740),
   ('e0000000-0000-0000-0000-000000000005', 7, 'Hardwell - GODD', 2100),
-  -- Four Tet @ Boiler Room Isolation
   ('e0000000-0000-0000-0000-000000000015', 1, 'Four Tet - Baby', 0),
   ('e0000000-0000-0000-0000-000000000015', 2, 'Four Tet - Insect Near Piha Beach', 480),
   ('e0000000-0000-0000-0000-000000000015', 3, 'Floating Points - Silhouettes', 1020),
   ('e0000000-0000-0000-0000-000000000015', 4, 'Four Tet - Parallel', 1680),
   ('e0000000-0000-0000-0000-000000000015', 5, 'Joy Orbison - Hyph Mngo', 2400);
 
--- ============================================================
 --
 -- run after initdb). GoTrue auto-creates the identity row when
--- ============================================================
 
   ('aaaa0000-0000-0000-0000-000000000001', 'site_admin');
 
--- Refresh the materialized view
 
 --> statement-breakpoint
 REFRESH MATERIALIZED VIEW sets_search;
