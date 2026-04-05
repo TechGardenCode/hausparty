@@ -1,6 +1,6 @@
 "use server";
 
-import { signIn, signOut } from "@/lib/auth";
+import { signIn, signOut, auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 
 export async function signInAction() {
@@ -8,14 +8,20 @@ export async function signInAction() {
 }
 
 export async function signOutAction() {
-  // Clear the Auth.js session cookie first
+  const session = await auth();
+  const idToken = (session as Record<string, unknown> | null)?.idToken as string | undefined;
+
+  // Clear the Auth.js session cookie
   await signOut({ redirect: false });
 
-  // Redirect to Keycloak's end-session endpoint to kill the browser SSO session
+  // Redirect to Keycloak's end-session endpoint to kill the browser SSO session.
+  // The id_token_hint skips the "do you want to log out?" confirmation page.
   const issuer = process.env.AUTH_KEYCLOAK_ISSUER!;
-  const clientId = process.env.AUTH_KEYCLOAK_ID!;
   const postLogoutRedirect = encodeURIComponent(process.env.AUTH_URL || "https://hausparty.dev.techgarden.gg");
-  const logoutUrl = `${issuer}/protocol/openid-connect/logout?client_id=${clientId}&post_logout_redirect_uri=${postLogoutRedirect}`;
+  let logoutUrl = `${issuer}/protocol/openid-connect/logout?post_logout_redirect_uri=${postLogoutRedirect}&client_id=${process.env.AUTH_KEYCLOAK_ID!}`;
+  if (idToken) {
+    logoutUrl += `&id_token_hint=${idToken}`;
+  }
 
   redirect(logoutUrl);
 }

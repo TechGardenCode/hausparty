@@ -13,6 +13,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     jwt({ token, account, profile }) {
       if (account && profile?.sub) {
         token.sub = profile.sub;
+        // Store the id_token for federated logout
+        token.idToken = account.id_token;
       }
       return token;
     },
@@ -20,6 +22,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       if (token.sub) {
         session.user.id = token.sub;
       }
+      // Expose id_token to the session for logout
+      (session as unknown as Record<string, unknown>).idToken = token.idToken;
       return session;
     },
     authorized({ auth: session, request }) {
