@@ -46,12 +46,12 @@ export function SourceSwitcher({
 
   if (!current) return null;
 
-  // Explicit source selection always switches the global player
+  // Explicit source selection always switches the global player with autoplay
   const handleSelect = (index: number) => {
     setActiveIndex(index);
     const source = activeSources[index];
     if (source) {
-      play(source, setSlug, setTitle, thumbnailUrl, autoplay);
+      play(source, setSlug, setTitle, thumbnailUrl, true);
     }
   };
 
@@ -83,7 +83,7 @@ export function SourceSwitcher({
     return (
       <div className="flex flex-col gap-4">
         <button
-          onClick={() => play(current, setSlug, setTitle, thumbnailUrl, autoplay)}
+          onClick={() => play(current, setSlug, setTitle, thumbnailUrl, true)}
           className="group relative aspect-video w-full overflow-hidden rounded-lg bg-bg-surface"
         >
           {thumbnailUrl ? (

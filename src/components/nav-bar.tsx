@@ -12,13 +12,7 @@ export function NavBar() {
         <div className="hidden flex-1 sm:flex">
           <NavSearch />
         </div>
-        <div className="ml-auto flex items-center gap-4 sm:ml-0">
-          <Link
-            href="/library"
-            className="hidden text-sm text-text-secondary transition-colors hover:text-text-primary sm:inline"
-          >
-            Library
-          </Link>
+        <div className="ml-auto hidden items-center sm:flex">
           <AuthButton />
         </div>
       </nav>

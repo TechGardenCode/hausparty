@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { auth } from "@/lib/auth";
+import { AvatarMenu } from "./avatar-menu";
 
 export async function AuthButton() {
   const session = await auth();
@@ -7,14 +8,7 @@ export async function AuthButton() {
 
   if (user) {
     const initials = (user.email || "U")[0].toUpperCase();
-    return (
-      <Link
-        href="/library"
-        className="flex h-8 w-8 items-center justify-center rounded-full bg-accent-primary/20 text-sm font-medium text-accent-primary"
-      >
-        {initials}
-      </Link>
-    );
+    return <AvatarMenu email={user.email || ""} initials={initials} />;
   }
 
   return (

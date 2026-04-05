@@ -28,6 +28,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const artistNames = set.artists.map((a: { name: string }) => a.name).join(", ");
   const title = `${artistNames} — ${set.event?.name || set.title} | hausparty`;
   const description = `Watch ${artistNames} live at ${set.event?.name || ""}. ${formatDuration(set.duration_seconds)} set.`;
+  const images = set.thumbnailUrl ? [{ url: set.thumbnailUrl, width: 320, height: 180 }] : [];
   return {
     title,
     description,
@@ -37,11 +38,13 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       type: "music.song",
       url: `https://hausparty.app/sets/${slug}`,
       siteName: "hausparty",
+      ...(images.length > 0 && { images }),
     },
     twitter: {
-      card: "summary",
+      card: images.length > 0 ? "summary_large_image" : "summary",
       title,
       description,
+      ...(images.length > 0 && { images: [images[0].url] }),
     },
   };
 }
