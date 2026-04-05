@@ -24,7 +24,7 @@ export function SourceSwitcher({
   thumbnailUrl,
   autoplay = false,
 }: SourceSwitcherProps) {
-  const activeSources = sources.filter((s) => s.is_active);
+  const activeSources = sources.filter((s) => s.isActive);
   const [activeIndex, setActiveIndex] = useState(0);
   const current = activeSources[activeIndex];
   const { state: playerState, play } = usePlayer();

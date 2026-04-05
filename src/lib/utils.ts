@@ -47,7 +47,7 @@ export function getYouTubeThumbnail(url: string | null | undefined): string | nu
   return null;
 }
 
-export function formatRelativeDate(dateStr: string, now = new Date()) {
+export function formatRelativeDate(dateStr: string | Date, now = new Date()) {
   const date = new Date(dateStr);
   const diffMs = now.getTime() - date.getTime();
   const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));

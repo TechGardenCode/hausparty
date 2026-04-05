@@ -1,7 +1,7 @@
 import type { Source } from "@/lib/types/database";
 
 export function getEmbedUrl(source: Source, autoplay = false): string | null {
-  if (!source.embed_supported || !source.is_active) return null;
+  if (!source.embedSupported || !source.isActive) return null;
 
   if (source.platform === "youtube") {
     const match = source.url.match(

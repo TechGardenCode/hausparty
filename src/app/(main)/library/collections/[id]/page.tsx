@@ -1,6 +1,6 @@
 import { redirect, notFound } from "next/navigation";
 import { Trash2, FolderOpen } from "lucide-react";
-import { createClient } from "@/lib/supabase/server";
+import { auth } from "@/lib/auth";
 import { getCollectionById } from "@/lib/queries/library";
 import { SetRow } from "@/components/set-row";
 import { EmptyState } from "@/components/empty-state";
@@ -11,13 +11,12 @@ interface Props {
 
 export default async function CollectionDetailPage({ params }: Props) {
   const { id } = await params;
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const session = await auth();
+  const user = session?.user ?? null;
 
   if (!user) redirect("/sign-in");
 
+  if (!user.id) redirect("/sign-in");
   const collection = await getCollectionById(id, user.id);
   if (!collection) notFound();
 
@@ -56,7 +55,7 @@ export default async function CollectionDetailPage({ params }: Props) {
             <SetRow
               key={set.id}
               slug={set.slug}
-              artistNames={set.artists.map((a) => a.name)}
+              artistNames={set.artists.map((a: { name: string }) => a.name)}
               eventName={set.event?.name || null}
               durationSeconds={set.duration_seconds}
               platform={set.sources[0]?.platform}

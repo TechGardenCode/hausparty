@@ -43,14 +43,14 @@ function StatusBadge({ status }: { status: ScraperRun["status"] }) {
   );
 }
 
-function formatDuration(start: string, end: string | null): string {
+function formatDuration(start: string | Date, end: string | Date | null): string {
   if (!end) return "—";
   const ms = new Date(end).getTime() - new Date(start).getTime();
   if (ms < 1000) return `${ms}ms`;
   return `${(ms / 1000).toFixed(1)}s`;
 }
 
-function formatDate(date: string): string {
+function formatDate(date: string | Date): string {
   return new Date(date).toLocaleString("en-US", {
     month: "short",
     day: "numeric",
@@ -97,7 +97,7 @@ export default async function ScrapersPage() {
               )}
               {data?.lastRun && (
                 <p className="text-xs text-text-tertiary">
-                  Last run: {formatDate(data.lastRun.started_at)}
+                  Last run: {formatDate(data.lastRun.startedAt)}
                 </p>
               )}
             </div>
@@ -138,18 +138,18 @@ export default async function ScrapersPage() {
                       className="border-b border-border-subtle last:border-0"
                     >
                       <td className="px-4 py-2.5 font-medium">
-                        {run.scraper_name}
+                        {run.scraperName}
                       </td>
                       <td className="px-4 py-2.5">
                         <StatusBadge status={run.status} />
                       </td>
                       <td className="px-4 py-2.5 text-text-secondary">
-                        {formatDate(run.started_at)}
+                        {formatDate(run.startedAt)}
                       </td>
                       <td className="px-4 py-2.5 text-text-secondary">
                         <span className="inline-flex items-center gap-1">
                           <Clock className="h-3 w-3" />
-                          {formatDuration(run.started_at, run.completed_at)}
+                          {formatDuration(run.startedAt, run.completedAt)}
                         </span>
                       </td>
                       <td className="px-4 py-2.5 text-text-secondary">

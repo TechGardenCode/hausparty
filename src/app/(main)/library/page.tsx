@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { Bookmark, Users, Flag, FolderOpen, Plus, Music, Send } from "lucide-react";
-import { createClient } from "@/lib/supabase/server";
+import { auth } from "@/lib/auth";
 import {
   getSavedSets,
   getFollowedArtists,
@@ -16,7 +16,7 @@ import { ArtistCard } from "@/components/artist-card";
 import { FestivalCard } from "@/components/festival-card";
 import { GenreChip } from "@/components/genre-chip";
 import { EmptyState } from "@/components/empty-state";
-import { signOut } from "@/lib/actions/auth";
+import { signOutAction as signOut } from "@/lib/actions/auth";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -28,12 +28,10 @@ interface Props {
 }
 
 export default async function LibraryPage({ searchParams }: Props) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const session = await auth();
+  const user = session?.user ?? null;
 
-  if (!user) redirect("/sign-in");
+  if (!user?.id) redirect("/sign-in");
 
   const { tab } = await searchParams;
   const activeTab = tab || "saved";
@@ -110,7 +108,7 @@ export default async function LibraryPage({ searchParams }: Props) {
               <SetRow
                 key={set.id}
                 slug={set.slug}
-                artistNames={set.artists.map((a) => a.name)}
+                artistNames={set.artists.map((a: { name: string }) => a.name)}
                 eventName={set.event?.name || null}
                 durationSeconds={set.duration_seconds}
                 platform={set.sources[0]?.platform}

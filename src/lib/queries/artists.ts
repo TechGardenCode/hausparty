@@ -1,32 +1,36 @@
-import { createClient } from "@/lib/supabase/server";
+import { db } from "@/lib/db";
+import { artists, setArtists } from "@/lib/db/schema";
+import { eq, count } from "drizzle-orm";
 
 export async function getArtistBySlug(slug: string) {
-  const supabase = await createClient();
-  const { data } = await supabase
-    .from("artists")
-    .select(`
-      id, name, slug, aliases, image_url, bio, socials,
-      artist_genres(genres(id, name, slug))
-    `)
-    .eq("slug", slug)
-    .single();
+  const data = await db.query.artists.findFirst({
+    where: eq(artists.slug, slug),
+    with: {
+      artistGenres: { with: { genre: true } },
+    },
+  });
 
   if (!data) return null;
 
   return {
-    ...data,
-    genres: (data.artist_genres || []).map(
-      (ag) => ag.genres
-    ).filter((g): g is NonNullable<typeof g> => g !== null),
+    id: data.id,
+    name: data.name,
+    slug: data.slug,
+    aliases: data.aliases,
+    image_url: data.imageUrl,
+    bio: data.bio,
+    socials: data.socials,
+    genres: (data.artistGenres || [])
+      .map((ag) => ag.genre)
+      .filter((g): g is NonNullable<typeof g> => g !== null),
   };
 }
 
 export async function getArtistSetCount(artistId: string) {
-  const supabase = await createClient();
-  const { count } = await supabase
-    .from("set_artists")
-    .select("set_id", { count: "exact", head: true })
-    .eq("artist_id", artistId);
+  const [result] = await db
+    .select({ count: count() })
+    .from(setArtists)
+    .where(eq(setArtists.artistId, artistId));
 
-  return count || 0;
+  return result?.count ?? 0;
 }

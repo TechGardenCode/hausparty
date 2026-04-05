@@ -1,12 +1,19 @@
-import { createClient } from "@/lib/supabase/server";
+import { db } from "@/lib/db";
+import { userSettings } from "@/lib/db/schema";
+import { eq } from "drizzle-orm";
 
 export async function getUserSettings(userId: string) {
-  const supabase = await createClient();
-  const { data } = await supabase
-    .from("user_settings")
-    .select("display_name, avatar_url, autoplay")
-    .eq("user_id", userId)
-    .single();
+  const data = await db.query.userSettings.findFirst({
+    where: eq(userSettings.userId, userId),
+  });
 
-  return data ?? { display_name: null, avatar_url: null, autoplay: false };
+  if (!data) {
+    return { display_name: null, avatar_url: null, autoplay: false };
+  }
+
+  return {
+    display_name: data.displayName,
+    avatar_url: data.avatarUrl,
+    autoplay: data.autoplay,
+  };
 }

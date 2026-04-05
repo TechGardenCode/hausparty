@@ -1,11 +1,9 @@
 import Link from "next/link";
-import { createClient } from "@/lib/supabase/server";
+import { auth } from "@/lib/auth";
 
 export async function AuthButton() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const session = await auth();
+  const user = session?.user ?? null;
 
   if (user) {
     const initials = (user.email || "U")[0].toUpperCase();

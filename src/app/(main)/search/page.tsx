@@ -72,10 +72,10 @@ export default async function SearchPage({ searchParams }: Props) {
               <SetRow
                 key={set.id}
                 slug={set.slug}
-                artistNames={set.artists.map((a) => a.name)}
+                artistNames={set.artists.map((a: { name: string }) => a.name)}
                 eventName={set.event?.name || null}
                 durationSeconds={set.duration_seconds}
-                genreNames={set.genres.map((g) => g.name)}
+                genreNames={set.genres.map((g: { name: string }) => g.name)}
                 platform={set.sources[0]?.platform}
                 sourceCount={set.sources.length}
                 thumbnailUrl={set.thumbnailUrl}

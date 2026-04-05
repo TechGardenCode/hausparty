@@ -1,32 +1,43 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { createClient } from "@/lib/supabase/server";
+import { db } from "@/lib/db";
+import { userSettings } from "@/lib/db/schema";
+import { getCurrentUser } from "@/lib/auth-helpers";
 
 export async function updateSettings(
   _prev: { success?: boolean; error?: string } | null,
   formData: FormData
 ) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
+  const user = await getCurrentUser();
   if (!user) return { error: "Not authenticated" };
 
-  const display_name = (formData.get("display_name") as string)?.trim() || null;
-  const avatar_url = (formData.get("avatar_url") as string)?.trim() || null;
+  const displayName = (formData.get("display_name") as string)?.trim() || null;
+  const avatarUrl = (formData.get("avatar_url") as string)?.trim() || null;
   const autoplay = formData.get("autoplay") === "on";
 
-  const { error } = await supabase.from("user_settings").upsert({
-    user_id: user.id,
-    display_name,
-    avatar_url,
-    autoplay,
-    updated_at: new Date().toISOString(),
-  });
-
-  if (error) return { error: error.message };
+  try {
+    await db
+      .insert(userSettings)
+      .values({
+        userId: user.id,
+        displayName,
+        avatarUrl,
+        autoplay,
+        updatedAt: new Date(),
+      })
+      .onConflictDoUpdate({
+        target: userSettings.userId,
+        set: {
+          displayName,
+          avatarUrl,
+          autoplay,
+          updatedAt: new Date(),
+        },
+      });
+  } catch (err) {
+    return { error: (err as Error).message };
+  }
 
   revalidatePath("/settings");
   revalidatePath("/sets");

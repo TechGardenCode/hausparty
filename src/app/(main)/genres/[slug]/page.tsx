@@ -4,7 +4,7 @@ import { Disc } from "lucide-react";
 import { getGenreBySlug } from "@/lib/queries/genres";
 import { getSetsByGenre } from "@/lib/queries/sets";
 import { isFollowing } from "@/lib/queries/library";
-import { createClient } from "@/lib/supabase/server";
+import { auth } from "@/lib/auth";
 import { SetRow } from "@/components/set-row";
 import { FollowButton } from "@/components/follow-button";
 import { ShareButton } from "@/components/share-button";
@@ -51,12 +51,10 @@ export default async function GenreDetailPage({ params, searchParams }: Props) {
   const { sets, total, perPage } = await getSetsByGenre(genre.id, page);
   const totalPages = Math.ceil(total / perPage);
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const session = await auth();
+  const user = session?.user ?? null;
 
-  const following = user
+  const following = user?.id
     ? await isFollowing(user.id, "genre", genre.id)
     : false;
 
@@ -97,10 +95,10 @@ export default async function GenreDetailPage({ params, searchParams }: Props) {
               <SetRow
                 key={set.id}
                 slug={set.slug}
-                artistNames={set.artists.map((a) => a.name)}
+                artistNames={set.artists.map((a: { name: string }) => a.name)}
                 eventName={set.event?.name || null}
                 durationSeconds={set.duration_seconds}
-                genreNames={set.genres.map((g) => g.name)}
+                genreNames={set.genres.map((g: { name: string }) => g.name)}
                 platform={set.sources[0]?.platform}
                 sourceCount={set.sources.length}
                 thumbnailUrl={set.thumbnailUrl}

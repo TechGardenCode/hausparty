@@ -4,7 +4,7 @@ import { Calendar, MapPin, Clock } from "lucide-react";
 import { getSetBySlug, getSetsByArtist, getSetsByEvent } from "@/lib/queries/sets";
 import { isSetSaved, getCollectionsWithSetStatus } from "@/lib/queries/library";
 import { getUserSettings } from "@/lib/queries/user";
-import { createClient } from "@/lib/supabase/server";
+import { auth } from "@/lib/auth";
 import { formatDuration } from "@/lib/utils";
 import { SourceSwitcher } from "@/components/source-switcher";
 import { Tracklist } from "@/components/tracklist";
@@ -25,7 +25,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   const set = await getSetBySlug(slug);
   if (!set) return {};
-  const artistNames = set.artists.map((a) => a.name).join(", ");
+  const artistNames = set.artists.map((a: { name: string }) => a.name).join(", ");
   const title = `${artistNames} — ${set.event?.name || set.title} | hausparty`;
   const description = `Watch ${artistNames} live at ${set.event?.name || ""}. ${formatDuration(set.duration_seconds)} set.`;
   return {
@@ -51,15 +51,13 @@ export default async function SetDetailPage({ params }: Props) {
   const set = await getSetBySlug(slug);
   if (!set) notFound();
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const session = await auth();
+  const user = session?.user ?? null;
 
   const [saved, collections, settings] = await Promise.all([
-    user ? isSetSaved(user.id, set.id) : false,
-    user ? getCollectionsWithSetStatus(user.id, set.id) : [],
-    user ? getUserSettings(user.id) : { autoplay: false },
+    user?.id ? isSetSaved(user.id, set.id) : false,
+    user?.id ? getCollectionsWithSetStatus(user.id, set.id) : [],
+    user?.id ? getUserSettings(user.id) : { autoplay: false },
   ]);
 
   const firstArtist = set.artists[0];
@@ -71,7 +69,7 @@ export default async function SetDetailPage({ params }: Props) {
   const relatedArtistSets = moreFromArtist.filter((s) => s.id !== set.id);
   const relatedEventSets = moreFromEvent.filter((s) => s.id !== set.id);
 
-  const artistNames = set.artists.map((a) => a.name).join(", ");
+  const artistNames = set.artists.map((a: { name: string }) => a.name).join(", ");
 
   return (
     <div className="flex flex-col gap-8">
@@ -89,7 +87,7 @@ export default async function SetDetailPage({ params }: Props) {
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="flex flex-col gap-1">
             <h1 className="text-2xl font-bold">
-              {set.artists.map((a, i, arr) => (
+              {set.artists.map((a: { slug: string; name: string }, i: number, arr: { slug: string; name: string }[]) => (
                 <span key={a.slug}>
                   <Link
                     href={`/artists/${a.slug}`}
@@ -156,7 +154,7 @@ export default async function SetDetailPage({ params }: Props) {
         {/* Genre chips */}
         {set.genres.length > 0 && (
           <div className="flex flex-wrap gap-2">
-            {set.genres.map((g) => (
+            {set.genres.map((g: { id: string; name: string; slug: string }) => (
               <GenreChip key={g.id} name={g.name} slug={g.slug} />
             ))}
           </div>
@@ -180,10 +178,10 @@ export default async function SetDetailPage({ params }: Props) {
               <SetRow
                 key={s.id}
                 slug={s.slug}
-                artistNames={s.artists.map((a) => a.name)}
+                artistNames={s.artists.map((a: { name: string }) => a.name)}
                 eventName={s.event?.name || null}
                 durationSeconds={s.duration_seconds}
-                genreNames={s.genres.map((g) => g.name)}
+                genreNames={s.genres.map((g: { name: string }) => g.name)}
                 platform={s.sources[0]?.platform}
                 sourceCount={s.sources.length}
                 thumbnailUrl={s.thumbnailUrl}
@@ -202,10 +200,10 @@ export default async function SetDetailPage({ params }: Props) {
               <SetRow
                 key={s.id}
                 slug={s.slug}
-                artistNames={s.artists.map((a) => a.name)}
+                artistNames={s.artists.map((a: { name: string }) => a.name)}
                 eventName={s.event?.name || null}
                 durationSeconds={s.duration_seconds}
-                genreNames={s.genres.map((g) => g.name)}
+                genreNames={s.genres.map((g: { name: string }) => g.name)}
                 platform={s.sources[0]?.platform}
                 sourceCount={s.sources.length}
                 thumbnailUrl={s.thumbnailUrl}

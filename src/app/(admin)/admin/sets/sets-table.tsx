@@ -12,8 +12,8 @@ type SetRow = {
   id: string;
   title: string;
   slug: string;
-  created_at: string;
-  performed_at: string | null;
+  created_at: Date;
+  performed_at: Date | null;
   artists: { id: string; name: string; slug: string }[];
   genres: { id: string; name: string; slug: string }[];
   event: { id: string; name: string; slug: string } | null;

@@ -1,8 +1,8 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { LayoutDashboard, Inbox, Disc3, Users, Shield, Download } from "lucide-react";
-import { createClient } from "@/lib/supabase/server";
-import { isAdmin } from "@/lib/queries/auth";
+import { auth } from "@/lib/auth";
+import { isAdmin } from "@/lib/auth-helpers";
 
 const navItems = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
@@ -17,13 +17,12 @@ export default async function AdminLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const session = await auth();
+  const user = session?.user ?? null;
 
   if (!user) redirect("/sign-in");
 
+  if (!user.id) redirect("/sign-in");
   const admin = await isAdmin(user.id);
   if (!admin) {
     return (

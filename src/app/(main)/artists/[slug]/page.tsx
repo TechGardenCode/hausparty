@@ -5,7 +5,7 @@ import { ExternalLink, Disc } from "lucide-react";
 import { getArtistBySlug, getArtistSetCount } from "@/lib/queries/artists";
 import { getSetsByArtist } from "@/lib/queries/sets";
 import { isFollowing } from "@/lib/queries/library";
-import { createClient } from "@/lib/supabase/server";
+import { auth } from "@/lib/auth";
 import { GenreChip } from "@/components/genre-chip";
 import { FollowButton } from "@/components/follow-button";
 import { ShareButton } from "@/components/share-button";
@@ -52,12 +52,10 @@ export default async function ArtistPage({ params }: Props) {
     getSetsByArtist(artist.id),
   ]);
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const session = await auth();
+  const user = session?.user ?? null;
 
-  const following = user
+  const following = user?.id
     ? await isFollowing(user.id, "artist", artist.id)
     : false;
 
@@ -172,10 +170,10 @@ export default async function ArtistPage({ params }: Props) {
                   <SetRow
                     key={set.id}
                     slug={set.slug}
-                    artistNames={set.artists.map((a) => a.name)}
+                    artistNames={set.artists.map((a: { name: string }) => a.name)}
                     eventName={set.event?.name || null}
                     durationSeconds={set.duration_seconds}
-                    genreNames={set.genres.map((g) => g.name)}
+                    genreNames={set.genres.map((g: { name: string }) => g.name)}
                     platform={set.sources[0]?.platform}
                     sourceCount={set.sources.length}
                     thumbnailUrl={set.thumbnailUrl}

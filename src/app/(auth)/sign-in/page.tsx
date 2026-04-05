@@ -1,22 +1,6 @@
-"use client";
+import { signInAction } from "@/lib/actions/auth";
 
-import { Suspense, useActionState } from "react";
-import { useSearchParams } from "next/navigation";
-import Link from "next/link";
-import { signIn } from "@/lib/actions/auth";
-
-function SignInForm() {
-  const searchParams = useSearchParams();
-  const redirectTo = searchParams.get("redirect") || "";
-
-  const [state, action, pending] = useActionState(
-    async (_prev: { error: string } | null, formData: FormData) => {
-      const result = await signIn(formData);
-      return result ?? null;
-    },
-    null
-  );
-
+export default function SignInPage() {
   return (
     <div className="flex flex-col gap-6">
       <div className="text-center">
@@ -25,65 +9,14 @@ function SignInForm() {
           Welcome back to hausparty
         </p>
       </div>
-      <form action={action} className="flex flex-col gap-4">
-        {redirectTo && (
-          <input type="hidden" name="redirect" value={redirectTo} />
-        )}
-        <div className="flex flex-col gap-1.5">
-          <label htmlFor="email" className="text-sm font-medium text-text-secondary">
-            Email
-          </label>
-          <input
-            id="email"
-            name="email"
-            type="email"
-            required
-            className="rounded-lg border border-border-subtle bg-bg-surface px-3 py-2 text-sm text-text-primary placeholder:text-text-tertiary focus:outline-none focus:ring-1 focus:ring-accent-primary"
-            placeholder="you@example.com"
-          />
-        </div>
-        <div className="flex flex-col gap-1.5">
-          <label htmlFor="password" className="text-sm font-medium text-text-secondary">
-            Password
-          </label>
-          <input
-            id="password"
-            name="password"
-            type="password"
-            required
-            minLength={6}
-            className="rounded-lg border border-border-subtle bg-bg-surface px-3 py-2 text-sm text-text-primary placeholder:text-text-tertiary focus:outline-none focus:ring-1 focus:ring-accent-primary"
-            placeholder="••••••••"
-          />
-        </div>
-        {state?.error && (
-          <p className="text-sm text-accent-negative">{state.error}</p>
-        )}
+      <form action={signInAction}>
         <button
           type="submit"
-          disabled={pending}
-          className="rounded-lg bg-accent-primary px-4 py-2 text-sm font-medium text-bg-primary transition-opacity hover:opacity-90 disabled:opacity-50"
+          className="w-full rounded-lg bg-accent-primary px-4 py-2 text-sm font-medium text-bg-primary transition-opacity hover:opacity-90"
         >
-          {pending ? "Signing in..." : "Sign in"}
+          Sign in with Keycloak
         </button>
       </form>
-      <p className="text-center text-sm text-text-secondary">
-        Don&apos;t have an account?{" "}
-        <Link
-          href={`/sign-up${redirectTo ? `?redirect=${encodeURIComponent(redirectTo)}` : ""}`}
-          className="text-accent-primary hover:underline"
-        >
-          Sign up
-        </Link>
-      </p>
     </div>
-  );
-}
-
-export default function SignInPage() {
-  return (
-    <Suspense>
-      <SignInForm />
-    </Suspense>
   );
 }

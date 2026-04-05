@@ -13,7 +13,7 @@ export function EmbeddedPlayer({ source, autoplay = false }: { source: Source; a
         <div className="flex flex-col items-center gap-2 text-text-tertiary">
           <AlertCircle className="h-8 w-8" />
           <span className="text-sm">
-            {source.is_active
+            {source.isActive
               ? "Embedding not available"
               : "Source unavailable"}
           </span>

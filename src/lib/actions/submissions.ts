@@ -1,13 +1,11 @@
 "use server";
 
-import { createClient } from "@/lib/supabase/server";
+import { db } from "@/lib/db";
+import { submissions } from "@/lib/db/schema";
+import { getCurrentUser } from "@/lib/auth-helpers";
 
 export async function submitSet(formData: FormData) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
+  const user = await getCurrentUser();
   if (!user) return { error: "Not authenticated" };
 
   const url = (formData.get("url") as string)?.trim();
@@ -25,19 +23,21 @@ export async function submitSet(formData: FormData) {
 
   const performedDateRaw = trimOrNull("performed_date");
 
-  const { error } = await supabase.from("submissions").insert({
-    user_id: user.id,
-    url,
-    artist_name: trimOrNull("artist_name"),
-    title: trimOrNull("title"),
-    event_name: trimOrNull("event_name"),
-    genre: trimOrNull("genre"),
-    stage: trimOrNull("stage"),
-    performed_date: performedDateRaw,
-    description: trimOrNull("description"),
-  });
-
-  if (error) return { error: error.message };
+  try {
+    await db.insert(submissions).values({
+      userId: user.id,
+      url,
+      artistName: trimOrNull("artist_name"),
+      title: trimOrNull("title"),
+      eventName: trimOrNull("event_name"),
+      genre: trimOrNull("genre"),
+      stage: trimOrNull("stage"),
+      performedDate: performedDateRaw,
+      description: trimOrNull("description"),
+    });
+  } catch (err) {
+    return { error: (err as Error).message };
+  }
 
   return { success: true };
 }

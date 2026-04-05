@@ -1,138 +1,127 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { createClient } from "@/lib/supabase/server";
+import { eq, and, count as countFn } from "drizzle-orm";
+import { db } from "@/lib/db";
+import { savedSets, follows, collections, collectionSets } from "@/lib/db/schema";
+import { getCurrentUser } from "@/lib/auth-helpers";
 
 export async function toggleSaveSet(setId: string) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
+  const user = await getCurrentUser();
   if (!user) return { error: "Not authenticated" };
 
-  const { count } = await supabase
-    .from("saved_sets")
-    .select("set_id", { count: "exact", head: true })
-    .eq("user_id", user.id)
-    .eq("set_id", setId);
+  const [{ value }] = await db
+    .select({ value: countFn() })
+    .from(savedSets)
+    .where(and(eq(savedSets.userId, user.id), eq(savedSets.setId, setId)));
 
-  if ((count || 0) > 0) {
-    await supabase
-      .from("saved_sets")
-      .delete()
-      .eq("user_id", user.id)
-      .eq("set_id", setId);
+  const exists = value > 0;
+
+  if (exists) {
+    await db
+      .delete(savedSets)
+      .where(and(eq(savedSets.userId, user.id), eq(savedSets.setId, setId)));
   } else {
-    await supabase
-      .from("saved_sets")
-      .insert({ user_id: user.id, set_id: setId });
+    await db.insert(savedSets).values({ userId: user.id, setId });
   }
 
   revalidatePath("/library");
-  return { saved: (count || 0) === 0 };
+  return { saved: !exists };
 }
 
 export async function toggleFollow(
   targetType: "artist" | "festival" | "genre",
   targetId: string
 ) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
+  const user = await getCurrentUser();
   if (!user) return { error: "Not authenticated" };
 
-  const { count } = await supabase
-    .from("follows")
-    .select("target_id", { count: "exact", head: true })
-    .eq("user_id", user.id)
-    .eq("target_type", targetType)
-    .eq("target_id", targetId);
+  const [{ value }] = await db
+    .select({ value: countFn() })
+    .from(follows)
+    .where(
+      and(
+        eq(follows.userId, user.id),
+        eq(follows.targetType, targetType),
+        eq(follows.targetId, targetId)
+      )
+    );
 
-  if ((count || 0) > 0) {
-    await supabase
-      .from("follows")
-      .delete()
-      .eq("user_id", user.id)
-      .eq("target_type", targetType)
-      .eq("target_id", targetId);
+  const exists = value > 0;
+
+  if (exists) {
+    await db
+      .delete(follows)
+      .where(
+        and(
+          eq(follows.userId, user.id),
+          eq(follows.targetType, targetType),
+          eq(follows.targetId, targetId)
+        )
+      );
   } else {
-    await supabase
-      .from("follows")
-      .insert({ user_id: user.id, target_type: targetType, target_id: targetId });
+    await db
+      .insert(follows)
+      .values({ userId: user.id, targetType, targetId });
   }
 
   revalidatePath("/library");
-  return { following: (count || 0) === 0 };
+  return { following: !exists };
 }
 
 export async function createCollection(name: string) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
+  const user = await getCurrentUser();
   if (!user) return { error: "Not authenticated" };
 
-  const { data, error } = await supabase
-    .from("collections")
-    .insert({ user_id: user.id, name })
-    .select("id")
-    .single();
+  try {
+    const [newCollection] = await db
+      .insert(collections)
+      .values({ userId: user.id, name })
+      .returning({ id: collections.id });
 
-  if (error) return { error: error.message };
-
-  revalidatePath("/library");
-  return { id: data.id };
+    revalidatePath("/library");
+    return { id: newCollection.id };
+  } catch (err) {
+    return { error: (err as Error).message };
+  }
 }
 
 export async function deleteCollection(collectionId: string) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
+  const user = await getCurrentUser();
   if (!user) return { error: "Not authenticated" };
 
-  await supabase
-    .from("collections")
-    .delete()
-    .eq("id", collectionId)
-    .eq("user_id", user.id);
+  await db
+    .delete(collections)
+    .where(
+      and(eq(collections.id, collectionId), eq(collections.userId, user.id))
+    );
 
   revalidatePath("/library");
 }
 
 export async function addToCollection(collectionId: string, setId: string) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
+  const user = await getCurrentUser();
   if (!user) return { error: "Not authenticated" };
 
-  await supabase
-    .from("collection_sets")
-    .insert({ collection_id: collectionId, set_id: setId });
+  await db
+    .insert(collectionSets)
+    .values({ collectionId, setId });
 
   revalidatePath("/library");
 }
 
 export async function removeFromCollection(collectionId: string, setId: string) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
+  const user = await getCurrentUser();
   if (!user) return { error: "Not authenticated" };
 
-  await supabase
-    .from("collection_sets")
-    .delete()
-    .eq("collection_id", collectionId)
-    .eq("set_id", setId);
+  await db
+    .delete(collectionSets)
+    .where(
+      and(
+        eq(collectionSets.collectionId, collectionId),
+        eq(collectionSets.setId, setId)
+      )
+    );
 
   revalidatePath("/library");
 }

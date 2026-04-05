@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { auth } from "@/lib/auth";
 import { getUserSettings } from "@/lib/queries/user";
 import { SettingsForm } from "@/components/settings-form";
 import type { Metadata } from "next";
@@ -9,12 +9,10 @@ export const metadata: Metadata = {
 };
 
 export default async function SettingsPage() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const session = await auth();
+  const user = session?.user ?? null;
 
-  if (!user) redirect("/sign-in");
+  if (!user?.id) redirect("/sign-in");
 
   const settings = await getUserSettings(user.id);
 

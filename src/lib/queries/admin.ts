@@ -1,361 +1,404 @@
-import { createAdminClient } from "@/lib/supabase/admin";
+import { db } from "@/lib/db";
+import {
+  sets,
+  artists,
+  genres,
+  festivals,
+  events,
+  submissions,
+  setGenres,
+  artistGenres,
+  scraperRuns,
+  scraperEntityMap,
+} from "@/lib/db/schema";
+import { eq, desc, ilike, inArray, count, isNull } from "drizzle-orm";
 
 export async function getAdminStats() {
-  const supabase = createAdminClient();
-
-  const [setsResult, artistsResult, pendingResult, noGenreResult, noEventResult] =
+  const [setsResult, artistsResult, pendingResult, noEventResult] =
     await Promise.all([
-      supabase.from("sets").select("id", { count: "exact", head: true }),
-      supabase.from("artists").select("id", { count: "exact", head: true }),
-      supabase
-        .from("submissions")
-        .select("id", { count: "exact", head: true })
-        .eq("status", "pending"),
-      supabase
-        .from("sets")
-        .select("id, set_genres(genre_id)"),
-      supabase
-        .from("sets")
-        .select("id", { count: "exact", head: true })
-        .is("event_id", null),
+      db.select({ count: count() }).from(sets),
+      db.select({ count: count() }).from(artists),
+      db
+        .select({ count: count() })
+        .from(submissions)
+        .where(eq(submissions.status, "pending")),
+      db
+        .select({ count: count() })
+        .from(sets)
+        .where(isNull(sets.eventId)),
     ]);
 
-  // For "sets without genres", we need to count sets that have zero genre joins
-  // The above left-join approach returns all sets; filter those with no genres
-  const setsWithoutGenres = (noGenreResult.data ?? []).filter(
-    (s) => !s.set_genres || s.set_genres.length === 0
-  ).length;
+  // Sets without genres: count sets that have zero genre joins
+  const setsWithGenres = await db
+    .select({ setId: setGenres.setId })
+    .from(setGenres)
+    .groupBy(setGenres.setId);
+
+  const totalSets = setsResult[0]?.count ?? 0;
+  const setsWithoutGenres = totalSets - setsWithGenres.length;
 
   return {
-    totalSets: setsResult.count ?? 0,
-    totalArtists: artistsResult.count ?? 0,
-    pendingSubmissions: pendingResult.count ?? 0,
-    setsWithoutGenres,
-    setsWithoutEvents: noEventResult.count ?? 0,
+    totalSets,
+    totalArtists: artistsResult[0]?.count ?? 0,
+    pendingSubmissions: pendingResult[0]?.count ?? 0,
+    setsWithoutGenres: Math.max(0, setsWithoutGenres),
+    setsWithoutEvents: noEventResult[0]?.count ?? 0,
   };
 }
 
 export async function getSubmissions(filters?: { status?: string }) {
-  const supabase = createAdminClient();
+  const whereClause =
+    filters?.status && filters.status !== "all"
+      ? eq(submissions.status, filters.status as "pending" | "approved" | "rejected")
+      : undefined;
 
-  let query = supabase
-    .from("submissions")
-    .select(
-      "id, url, artist_name, title, status, rejection_reason, matched_set_id, created_at, processed_at, user_id, sets!matched_set_id(slug, title)"
-    )
-    .order("created_at", { ascending: false });
+  const data = await db.query.submissions.findMany({
+    where: whereClause,
+    with: {
+      matchedSet: true,
+    },
+    orderBy: [desc(submissions.createdAt)],
+  });
 
-  if (filters?.status && filters.status !== "all") {
-    query = query.eq("status", filters.status as "pending" | "approved" | "rejected");
-  }
-
-  const { data } = await query;
-
-  return (data ?? []).map((s) => ({
-    ...s,
-    matchedSet: s.sets ?? null,
+  return data.map((s) => ({
+    id: s.id,
+    url: s.url,
+    artist_name: s.artistName,
+    title: s.title,
+    status: s.status,
+    rejection_reason: s.rejectionReason,
+    matched_set_id: s.matchedSetId,
+    created_at: s.createdAt,
+    processed_at: s.processedAt,
+    user_id: s.userId,
+    matchedSet: s.matchedSet
+      ? { slug: s.matchedSet.slug, title: s.matchedSet.title }
+      : null,
   }));
 }
 
 export async function getAdminSets(page: number, pageSize: number) {
-  const supabase = createAdminClient();
-  const from = (page - 1) * pageSize;
-  const to = from + pageSize - 1;
+  const offset = (page - 1) * pageSize;
 
-  const { data, count } = await supabase
-    .from("sets")
-    .select(
-      `
-      id, title, slug, created_at, performed_at,
-      set_artists(position, artists(id, name, slug)),
-      set_genres(genres(id, name, slug)),
-      events(id, name, slug),
-      sources(id)
-    `,
-      { count: "exact" }
-    )
-    .order("created_at", { ascending: false })
-    .range(from, to);
+  const [totalResult] = await db.select({ count: count() }).from(sets);
+
+  const data = await db.query.sets.findMany({
+    with: {
+      setArtists: { with: { artist: true } },
+      setGenres: { with: { genre: true } },
+      event: true,
+      sources: true,
+    },
+    orderBy: [desc(sets.createdAt)],
+    limit: pageSize,
+    offset,
+  });
 
   return {
-    sets: (data ?? []).map((s) => ({
+    sets: data.map((s) => ({
       id: s.id,
       title: s.title,
       slug: s.slug,
-      created_at: s.created_at,
-      performed_at: s.performed_at,
-      artists: (s.set_artists ?? [])
+      created_at: s.createdAt,
+      performed_at: s.performedAt,
+      artists: (s.setArtists ?? [])
         .sort((a, b) => a.position - b.position)
-        .map((sa) => sa.artists)
+        .map((sa) => sa.artist)
         .filter((a): a is NonNullable<typeof a> => a !== null),
-      genres: (s.set_genres ?? [])
-        .map((sg) => sg.genres)
+      genres: (s.setGenres ?? [])
+        .map((sg) => sg.genre)
         .filter((g): g is NonNullable<typeof g> => g !== null),
-      event: s.events,
+      event: s.event
+        ? { id: s.event.id, name: s.event.name, slug: s.event.slug }
+        : null,
       sourceCount: s.sources?.length ?? 0,
     })),
-    total: count ?? 0,
+    total: totalResult?.count ?? 0,
     page,
     pageSize,
   };
 }
 
 export async function getScraperRuns(scraperName?: string, limit = 20) {
-  const supabase = createAdminClient();
+  const data = await db.query.scraperRuns.findMany({
+    where: scraperName ? eq(scraperRuns.scraperName, scraperName) : undefined,
+    orderBy: [desc(scraperRuns.startedAt)],
+    limit,
+  });
 
-  let query = supabase
-    .from("scraper_runs")
-    .select("*")
-    .order("started_at", { ascending: false })
-    .limit(limit);
-
-  if (scraperName) {
-    query = query.eq("scraper_name", scraperName);
-  }
-
-  const { data } = await query;
-  return data ?? [];
+  return data;
 }
 
 export async function getScraperOverview() {
-  const supabase = createAdminClient();
+  // Get latest runs (limit to recent runs to avoid unbounded scan)
+  const runs = await db.query.scraperRuns.findMany({
+    orderBy: [desc(scraperRuns.startedAt)],
+    limit: 100,
+  });
 
-  // Get latest run per scraper (limit to recent runs to avoid unbounded scan)
-  const { data: runs } = await supabase
-    .from("scraper_runs")
-    .select("*")
-    .order("started_at", { ascending: false })
-    .limit(100);
-
-  // Get entity counts per scraper using count-only select grouped client-side
-  // (Supabase JS doesn't support GROUP BY, so we select minimal columns with a limit)
-  const { data: entityCounts } = await supabase
-    .from("scraper_entity_map")
-    .select("scraper_name, entity_type")
+  // Get entity counts per scraper
+  const entityCounts = await db
+    .select({
+      scraperName: scraperEntityMap.scraperName,
+      entityType: scraperEntityMap.entityType,
+    })
+    .from(scraperEntityMap)
     .limit(10000);
 
   // Group by scraper
   const scraperMap = new Map<
     string,
     {
-      lastRun: NonNullable<typeof runs>[number] | null;
+      lastRun: (typeof runs)[number] | null;
       entityCounts: { artists: number; events: number; festivals: number };
     }
   >();
 
-  for (const run of runs ?? []) {
-    if (!scraperMap.has(run.scraper_name)) {
-      scraperMap.set(run.scraper_name, {
+  for (const run of runs) {
+    if (!scraperMap.has(run.scraperName)) {
+      scraperMap.set(run.scraperName, {
         lastRun: run,
         entityCounts: { artists: 0, events: 0, festivals: 0 },
       });
     }
   }
 
-  for (const entity of entityCounts ?? []) {
-    let entry = scraperMap.get(entity.scraper_name);
+  for (const entity of entityCounts) {
+    let entry = scraperMap.get(entity.scraperName);
     if (!entry) {
       entry = {
         lastRun: null,
         entityCounts: { artists: 0, events: 0, festivals: 0 },
       };
-      scraperMap.set(entity.scraper_name, entry);
+      scraperMap.set(entity.scraperName, entry);
     }
-    if (entity.entity_type === "artist") entry.entityCounts.artists++;
-    else if (entity.entity_type === "event") entry.entityCounts.events++;
-    else if (entity.entity_type === "festival") entry.entityCounts.festivals++;
+    if (entity.entityType === "artist") entry.entityCounts.artists++;
+    else if (entity.entityType === "event") entry.entityCounts.events++;
+    else if (entity.entityType === "festival") entry.entityCounts.festivals++;
   }
 
   return Object.fromEntries(scraperMap);
 }
 
 export async function getLastScraperRun() {
-  const supabase = createAdminClient();
-  const { data } = await supabase
-    .from("scraper_runs")
-    .select("scraper_name, status, started_at, completed_at, stats")
-    .order("started_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-  return data;
+  const data = await db.query.scraperRuns.findFirst({
+    orderBy: [desc(scraperRuns.startedAt)],
+  });
+
+  if (!data) return null;
+
+  return {
+    scraper_name: data.scraperName,
+    status: data.status,
+    started_at: data.startedAt,
+    completed_at: data.completedAt,
+    stats: data.stats,
+  };
 }
 
 export async function getSetForEdit(setId: string) {
-  const supabase = createAdminClient();
+  const data = await db.query.sets.findFirst({
+    where: eq(sets.id, setId),
+    with: {
+      setArtists: { with: { artist: true } },
+      setGenres: { with: { genre: true } },
+      event: { with: { festival: true } },
+      sources: true,
+    },
+  });
 
-  const { data, error } = await supabase
-    .from("sets")
-    .select(
-      `
-      id, title, slug, performed_at, duration_seconds, stage, event_id,
-      set_artists(position, artists(id, name, slug)),
-      set_genres(genres(id, name, slug)),
-      events(id, name, slug, festival_id, festivals(id, name, slug), stages),
-      sources(id, url, platform)
-    `
-    )
-    .eq("id", setId)
-    .single();
-
-  if (error || !data) return null;
+  if (!data) return null;
 
   return {
-    ...data,
-    artists: (data.set_artists ?? [])
+    id: data.id,
+    title: data.title,
+    slug: data.slug,
+    performed_at: data.performedAt,
+    duration_seconds: data.durationSeconds,
+    stage: data.stage,
+    event_id: data.eventId,
+    artists: (data.setArtists ?? [])
       .sort((a, b) => a.position - b.position)
-      .map((sa) => sa.artists)
+      .map((sa) => sa.artist)
       .filter((a): a is NonNullable<typeof a> => a !== null),
-    genres: (data.set_genres ?? [])
-      .map((sg) => sg.genres)
+    genres: (data.setGenres ?? [])
+      .map((sg) => sg.genre)
       .filter((g): g is NonNullable<typeof g> => g !== null),
-    event: data.events,
-    sources: data.sources ?? [],
+    event: data.event
+      ? {
+          id: data.event.id,
+          name: data.event.name,
+          slug: data.event.slug,
+          festival_id: data.event.festivalId,
+          festivals: data.event.festival || null,
+          stages: data.event.stages,
+        }
+      : null,
+    sources: (data.sources ?? []).map((s) => ({
+      id: s.id,
+      url: s.url,
+      platform: s.platform,
+    })),
   };
 }
 
 export async function searchEvents(query: string) {
-  const supabase = createAdminClient();
+  const data = await db.query.events.findMany({
+    where: ilike(events.name, `%${query}%`),
+    with: {
+      festival: true,
+    },
+    orderBy: [desc(events.dateStart)],
+    limit: 20,
+  });
 
-  const { data } = await supabase
-    .from("events")
-    .select("id, name, slug, date_start, festivals(id, name, slug)")
-    .ilike("name", `%${query}%`)
-    .order("date_start", { ascending: false, nullsFirst: false })
-    .limit(20);
-
-  return data ?? [];
+  return data.map((e) => ({
+    id: e.id,
+    name: e.name,
+    slug: e.slug,
+    date_start: e.dateStart,
+    festivals: e.festival
+      ? { id: e.festival.id, name: e.festival.name, slug: e.festival.slug }
+      : null,
+  }));
 }
 
 export async function getAllGenres() {
-  const supabase = createAdminClient();
+  const data = await db.query.genres.findMany({
+    orderBy: [genres.name],
+  });
 
-  const { data } = await supabase
-    .from("genres")
-    .select("id, name, slug")
-    .order("name");
-
-  return data ?? [];
+  return data.map((g) => ({
+    id: g.id,
+    name: g.name,
+    slug: g.slug,
+  }));
 }
 
 export async function getGenreSuggestionsForArtists(artistIds: string[]) {
   if (artistIds.length === 0) return [];
 
-  const supabase = createAdminClient();
-
-  const { data } = await supabase
-    .from("artist_genres")
-    .select("genre_id, genres(id, name, slug)")
-    .in("artist_id", artistIds);
-
-  if (!data) return [];
+  const data = await db.query.artistGenres.findMany({
+    where: inArray(artistGenres.artistId, artistIds),
+    with: {
+      genre: true,
+    },
+  });
 
   // Count frequency and deduplicate
-  const genreMap = new Map<string, { genre: NonNullable<(typeof data)[number]["genres"]>; count: number }>();
+  const genreMap = new Map<
+    string,
+    { genre: NonNullable<(typeof data)[number]["genre"]>; count: number }
+  >();
   for (const row of data) {
-    if (!row.genres) continue;
-    const existing = genreMap.get(row.genres.id);
+    if (!row.genre) continue;
+    const existing = genreMap.get(row.genre.id);
     if (existing) {
       existing.count++;
     } else {
-      genreMap.set(row.genres.id, { genre: row.genres, count: 1 });
+      genreMap.set(row.genre.id, { genre: row.genre, count: 1 });
     }
   }
 
   // Sort by frequency (most common first)
   return Array.from(genreMap.values())
     .sort((a, b) => b.count - a.count)
-    .map((entry) => entry.genre);
+    .map((entry) => ({
+      id: entry.genre.id,
+      name: entry.genre.name,
+      slug: entry.genre.slug,
+    }));
 }
 
 export async function searchArtists(query: string) {
-  const supabase = createAdminClient();
+  const data = await db.query.artists.findMany({
+    where: ilike(artists.name, `%${query}%`),
+    orderBy: [artists.name],
+    limit: 20,
+  });
 
-  const { data } = await supabase
-    .from("artists")
-    .select("id, name, slug")
-    .ilike("name", `%${query}%`)
-    .order("name")
-    .limit(20);
-
-  return data ?? [];
+  return data.map((a) => ({
+    id: a.id,
+    name: a.name,
+    slug: a.slug,
+  }));
 }
 
 export async function searchFestivals(query: string) {
-  const supabase = createAdminClient();
+  const data = await db.query.festivals.findMany({
+    where: ilike(festivals.name, `%${query}%`),
+    orderBy: [festivals.name],
+    limit: 20,
+  });
 
-  const { data } = await supabase
-    .from("festivals")
-    .select("id, name, slug")
-    .ilike("name", `%${query}%`)
-    .order("name")
-    .limit(20);
-
-  return data ?? [];
+  return data.map((f) => ({
+    id: f.id,
+    name: f.name,
+    slug: f.slug,
+  }));
 }
 
 export async function getArtistWithSets(artistId: string) {
-  const supabase = createAdminClient();
+  const data = await db.query.artists.findFirst({
+    where: eq(artists.id, artistId),
+    with: {
+      setArtists: {
+        with: { set: true },
+      },
+      artistGenres: {
+        with: { genre: true },
+      },
+    },
+  });
 
-  const { data, error } = await supabase
-    .from("artists")
-    .select(
-      `
-      id, name, slug, aliases,
-      set_artists(sets(id, title, slug)),
-      artist_genres(genres(id, name, slug))
-    `
-    )
-    .eq("id", artistId)
-    .single();
-
-  if (error || !data) return null;
+  if (!data) return null;
 
   return {
     id: data.id,
     name: data.name,
     slug: data.slug,
     aliases: data.aliases ?? [],
-    sets: (data.set_artists ?? [])
-      .map((sa) => sa.sets)
-      .filter((s): s is NonNullable<typeof s> => s !== null),
-    genres: (data.artist_genres ?? [])
-      .map((ag) => ag.genres)
-      .filter((g): g is NonNullable<typeof g> => g !== null),
+    sets: (data.setArtists ?? [])
+      .map((sa) => sa.set)
+      .filter((s): s is NonNullable<typeof s> => s !== null)
+      .map((s) => ({ id: s.id, title: s.title, slug: s.slug })),
+    genres: (data.artistGenres ?? [])
+      .map((ag) => ag.genre)
+      .filter((g): g is NonNullable<typeof g> => g !== null)
+      .map((g) => ({ id: g.id, name: g.name, slug: g.slug })),
   };
 }
 
 export async function getAdminArtists(page: number, pageSize: number) {
-  const supabase = createAdminClient();
-  const from = (page - 1) * pageSize;
-  const to = from + pageSize - 1;
+  const offset = (page - 1) * pageSize;
 
-  const { data, count } = await supabase
-    .from("artists")
-    .select(
-      `
-      id, name, slug, created_at,
-      set_artists(set_id),
-      artist_genres(genres(id, name, slug))
-    `,
-      { count: "exact" }
-    )
-    .order("name")
-    .range(from, to);
+  const [totalResult] = await db.select({ count: count() }).from(artists);
 
-  const artists = (data ?? []).map((a) => ({
+  const data = await db.query.artists.findMany({
+    with: {
+      setArtists: true,
+      artistGenres: { with: { genre: true } },
+    },
+    orderBy: [artists.name],
+    limit: pageSize,
+    offset,
+  });
+
+  const artistList = data.map((a) => ({
     id: a.id,
     name: a.name,
     slug: a.slug,
-    created_at: a.created_at,
-    setCount: a.set_artists?.length ?? 0,
-    genres: (a.artist_genres ?? [])
-      .map((ag) => ag.genres)
-      .filter((g): g is NonNullable<typeof g> => g !== null),
+    created_at: a.createdAt,
+    setCount: a.setArtists?.length ?? 0,
+    genres: (a.artistGenres ?? [])
+      .map((ag) => ag.genre)
+      .filter((g): g is NonNullable<typeof g> => g !== null)
+      .map((g) => ({ id: g.id, name: g.name, slug: g.slug })),
   }));
 
   // Simple similar-slug flagging: group by first 5 chars of slug
   const slugPrefixes = new Map<string, string[]>();
-  for (const a of artists) {
+  for (const a of artistList) {
     const prefix = a.slug.slice(0, 5);
     const existing = slugPrefixes.get(prefix) ?? [];
     existing.push(a.slug);
@@ -370,11 +413,11 @@ export async function getAdminArtists(page: number, pageSize: number) {
   }
 
   return {
-    artists: artists.map((a) => ({
+    artists: artistList.map((a) => ({
       ...a,
       hasSimilarSlug: duplicateSlugs.has(a.slug),
     })),
-    total: count ?? 0,
+    total: totalResult?.count ?? 0,
     page,
     pageSize,
   };

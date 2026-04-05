@@ -9,7 +9,7 @@ import {
 } from "@/lib/queries/festivals";
 import { getSetsByEvent } from "@/lib/queries/sets";
 import { isFollowing } from "@/lib/queries/library";
-import { createClient } from "@/lib/supabase/server";
+import { auth } from "@/lib/auth";
 import { FollowButton } from "@/components/follow-button";
 import { ShareButton } from "@/components/share-button";
 import { SetRow } from "@/components/set-row";
@@ -59,12 +59,10 @@ export default async function FestivalPage({ params, searchParams }: Props) {
     getFestivalEvents(festival.id),
   ]);
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const session = await auth();
+  const user = session?.user ?? null;
 
-  const following = user
+  const following = user?.id
     ? await isFollowing(user.id, "festival", festival.id)
     : false;
 
@@ -207,10 +205,10 @@ export default async function FestivalPage({ params, searchParams }: Props) {
               <SetRow
                 key={set.id}
                 slug={set.slug}
-                artistNames={set.artists.map((a) => a.name)}
+                artistNames={set.artists.map((a: { name: string }) => a.name)}
                 eventName={set.event?.name || null}
                 durationSeconds={set.duration_seconds}
-                genreNames={set.genres.map((g) => g.name)}
+                genreNames={set.genres.map((g: { name: string }) => g.name)}
                 platform={set.sources[0]?.platform}
                 sourceCount={set.sources.length}
                 thumbnailUrl={set.thumbnailUrl}

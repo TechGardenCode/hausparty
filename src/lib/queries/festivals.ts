@@ -1,61 +1,72 @@
-import { createClient } from "@/lib/supabase/server";
+import { db } from "@/lib/db";
+import { festivals, events, sets } from "@/lib/db/schema";
+import { eq, desc, count } from "drizzle-orm";
 
 export async function getAllFestivals() {
-  const supabase = await createClient();
-  const { data } = await supabase
-    .from("festivals")
-    .select(`
-      id, name, slug, description, image_url,
-      festival_genres(genres(id, name, slug))
-    `)
-    .order("name");
+  const data = await db.query.festivals.findMany({
+    with: {
+      festivalGenres: { with: { genre: true } },
+    },
+    orderBy: [festivals.name],
+  });
 
-  return (data || []).map((f) => ({
-    ...f,
-    genres: (f.festival_genres || []).map(
-      (fg) => fg.genres
-    ).filter((g): g is NonNullable<typeof g> => g !== null),
+  return data.map((f) => ({
+    id: f.id,
+    name: f.name,
+    slug: f.slug,
+    description: f.description,
+    image_url: f.imageUrl,
+    genres: (f.festivalGenres || [])
+      .map((fg) => fg.genre)
+      .filter((g): g is NonNullable<typeof g> => g !== null),
   }));
 }
 
 export async function getFestivalBySlug(slug: string) {
-  const supabase = await createClient();
-  const { data } = await supabase
-    .from("festivals")
-    .select(`
-      id, name, slug, description, image_url,
-      festival_genres(genres(id, name, slug))
-    `)
-    .eq("slug", slug)
-    .single();
+  const data = await db.query.festivals.findFirst({
+    where: eq(festivals.slug, slug),
+    with: {
+      festivalGenres: { with: { genre: true } },
+    },
+  });
 
   if (!data) return null;
 
   return {
-    ...data,
-    genres: (data.festival_genres || []).map(
-      (fg) => fg.genres
-    ).filter((g): g is NonNullable<typeof g> => g !== null),
+    id: data.id,
+    name: data.name,
+    slug: data.slug,
+    description: data.description,
+    image_url: data.imageUrl,
+    genres: (data.festivalGenres || [])
+      .map((fg) => fg.genre)
+      .filter((g): g is NonNullable<typeof g> => g !== null),
   };
 }
 
 export async function getFestivalEvents(festivalId: string) {
-  const supabase = await createClient();
-  const { data } = await supabase
-    .from("events")
-    .select("id, name, slug, date_start, date_end, location, stages")
-    .eq("festival_id", festivalId)
-    .order("date_start", { ascending: false });
+  const data = await db.query.events.findMany({
+    where: eq(events.festivalId, festivalId),
+    orderBy: [desc(events.dateStart)],
+  });
 
-  return data || [];
+  return data.map((e) => ({
+    id: e.id,
+    name: e.name,
+    slug: e.slug,
+    date_start: e.dateStart,
+    date_end: e.dateEnd,
+    location: e.location,
+    stages: e.stages,
+  }));
 }
 
 export async function getFestivalSetCount(festivalId: string) {
-  const supabase = await createClient();
-  const { count } = await supabase
-    .from("sets")
-    .select("id, events!inner(festival_id)", { count: "exact", head: true })
-    .eq("events.festival_id", festivalId);
+  const [result] = await db
+    .select({ count: count() })
+    .from(sets)
+    .innerJoin(events, eq(sets.eventId, events.id))
+    .where(eq(events.festivalId, festivalId));
 
-  return count || 0;
+  return result?.count ?? 0;
 }

@@ -20,7 +20,7 @@ export function SourceRow({ source, isActive, onSelect }: SourceRowProps) {
           : "hover:bg-bg-surface-hover"
       )}
     >
-      {source.media_type === "video" ? (
+      {source.mediaType === "video" ? (
         <Video className="h-4 w-4 shrink-0 text-text-secondary" />
       ) : (
         <Headphones className="h-4 w-4 shrink-0 text-text-secondary" />
@@ -28,7 +28,7 @@ export function SourceRow({ source, isActive, onSelect }: SourceRowProps) {
       <span className="flex-1 text-sm capitalize text-text-primary">
         {source.platform}
       </span>
-      <QualityBadge sourceType={source.source_type} />
+      <QualityBadge sourceType={source.sourceType} />
       {source.quality && (
         <span className="text-xs text-text-tertiary">{source.quality}</span>
       )}

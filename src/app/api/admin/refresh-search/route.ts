@@ -1,4 +1,5 @@
-import { createAdminClient } from "@/lib/supabase/admin";
+import { db } from "@/lib/db";
+import { sql } from "drizzle-orm";
 
 export async function POST(request: Request) {
   const authHeader = request.headers.get("authorization");
@@ -8,12 +9,11 @@ export async function POST(request: Request) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const supabase = createAdminClient();
-  const { error } = await supabase.rpc("refresh_search_view");
-
-  if (error) {
-    return Response.json({ error: error.message }, { status: 500 });
+  try {
+    await db.execute(sql`SELECT refresh_search_view()`);
+    return Response.json({ refreshed: true, timestamp: new Date().toISOString() });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unknown error";
+    return Response.json({ error: message }, { status: 500 });
   }
-
-  return Response.json({ refreshed: true, timestamp: new Date().toISOString() });
 }

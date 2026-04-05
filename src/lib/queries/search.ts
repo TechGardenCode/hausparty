@@ -1,33 +1,31 @@
-import { createClient } from "@/lib/supabase/server";
+import { db } from "@/lib/db";
+import { sets, artists, festivals } from "@/lib/db/schema";
+import { ilike, inArray, sql } from "drizzle-orm";
 import { normalizeSet } from "./sets";
 
 export async function searchSets(query: string, limit = 20) {
-  const supabase = await createClient();
-
   // Step 1: Get ranked set IDs from materialized view via RPC
-  const { data: ranked } = await supabase.rpc("search_sets", {
-    search_query: query,
-    result_limit: limit,
-  });
+  const ranked = await db.execute<{ set_id: string }>(
+    sql`SELECT set_id FROM search_sets(${query}, ${limit})`
+  );
 
   if (!ranked || ranked.length === 0) return [];
 
   const setIds = ranked.map((r) => r.set_id);
 
   // Step 2: Fetch full set data with joins
-  const { data } = await supabase
-    .from("sets")
-    .select(`
-      id, title, slug, performed_at, duration_seconds, stage,
-      set_artists(position, artists(id, name, slug)),
-      set_genres(genres(id, name, slug)),
-      events(id, name, slug, festivals(id, name, slug)),
-      sources(id, platform, url, source_type, media_type, quality, is_active)
-    `)
-    .in("id", setIds);
+  const data = await db.query.sets.findMany({
+    where: inArray(sets.id, setIds),
+    with: {
+      setArtists: { with: { artist: true } },
+      setGenres: { with: { genre: true } },
+      event: { with: { festival: true } },
+      sources: true,
+    },
+  });
 
   // Step 3: Re-order to match search ranking
-  const normalized = (data || []).map(normalizeSet);
+  const normalized = data.map(normalizeSet);
   const idOrder = new Map(setIds.map((id, i) => [id, i]));
   normalized.sort((a, b) => (idOrder.get(a.id) ?? 0) - (idOrder.get(b.id) ?? 0));
 
@@ -35,35 +33,39 @@ export async function searchSets(query: string, limit = 20) {
 }
 
 export async function searchArtists(query: string, limit = 20) {
-  const supabase = await createClient();
-  const { data } = await supabase
-    .from("artists")
-    .select(`
-      id, name, slug, image_url,
-      artist_genres(genres(id, name, slug))
-    `)
-    .ilike("name", `%${query}%`)
-    .order("name")
-    .limit(limit);
+  const data = await db.query.artists.findMany({
+    where: ilike(artists.name, `%${query}%`),
+    with: {
+      artistGenres: { with: { genre: true } },
+    },
+    orderBy: [artists.name],
+    limit,
+  });
 
-  return (data || []).map((a) => ({
-    ...a,
-    genres: (a.artist_genres || []).map(
-      (ag) => ag.genres
-    ).filter((g): g is NonNullable<typeof g> => g !== null),
+  return data.map((a) => ({
+    id: a.id,
+    name: a.name,
+    slug: a.slug,
+    image_url: a.imageUrl,
+    genres: (a.artistGenres || [])
+      .map((ag) => ag.genre)
+      .filter((g): g is NonNullable<typeof g> => g !== null),
   }));
 }
 
 export async function searchFestivals(query: string, limit = 20) {
-  const supabase = await createClient();
-  const { data } = await supabase
-    .from("festivals")
-    .select("id, name, slug, image_url")
-    .ilike("name", `%${query}%`)
-    .order("name")
-    .limit(limit);
+  const data = await db.query.festivals.findMany({
+    where: ilike(festivals.name, `%${query}%`),
+    orderBy: [festivals.name],
+    limit,
+  });
 
-  return data || [];
+  return data.map((f) => ({
+    id: f.id,
+    name: f.name,
+    slug: f.slug,
+    image_url: f.imageUrl,
+  }));
 }
 
 export async function typeaheadSearch(query: string) {

@@ -24,7 +24,7 @@ type SetForEdit = {
   id: string;
   title: string;
   slug: string;
-  performed_at: string | null;
+  performed_at: Date | null;
   duration_seconds: number | null;
   stage: string | null;
   event_id: string | null;
@@ -56,7 +56,7 @@ export function SetEditorForm({ set, allGenres }: Props) {
   // Basic info state
   const [title, setTitle] = useState(set.title);
   const [slug, setSlug] = useState(set.slug);
-  const [performedAt, setPerformedAt] = useState(set.performed_at?.split("T")[0] ?? "");
+  const [performedAt, setPerformedAt] = useState(set.performed_at ? set.performed_at.toISOString().split("T")[0] : "");
   const [duration, setDuration] = useState<number | null>(set.duration_seconds);
   const [stage, setStage] = useState(set.stage ?? "");
   const [autoSlug, setAutoSlug] = useState(false);

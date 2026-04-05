@@ -1,185 +1,173 @@
-import { createClient } from "@/lib/supabase/server";
+import { db } from "@/lib/db";
+import { sets, setArtists, setGenres } from "@/lib/db/schema";
+import { eq, desc, asc, inArray } from "drizzle-orm";
 import { getYouTubeThumbnail } from "@/lib/utils";
 
-const SET_SELECT = `
-  id, title, slug, performed_at, duration_seconds, stage,
-  set_artists(position, artists(id, name, slug)),
-  set_genres(genres(id, name, slug)),
-  events(id, name, slug, festivals(id, name, slug)),
-  sources(id, platform, url, source_type, media_type, quality, is_active)
-` as const;
+const setWithRelations = {
+  setArtists: { with: { artist: true } },
+  setGenres: { with: { genre: true } },
+  event: { with: { festival: true } },
+  sources: true,
+} as const;
+
+const setWithRelationsDetailed = {
+  ...setWithRelations,
+  tracklistEntries: true,
+} as const;
 
 export async function getTrendingSets(limit = 10) {
-  const supabase = await createClient();
-  const { data } = await supabase
-    .from("sets")
-    .select(SET_SELECT)
-    .order("performed_at", { ascending: false })
-    .limit(limit);
+  const data = await db.query.sets.findMany({
+    with: setWithRelations,
+    orderBy: [desc(sets.performedAt)],
+    limit,
+  });
 
-  return (data || []).map(normalizeSet);
+  return data.map(normalizeSet);
 }
 
 export async function getNewSets(limit = 10) {
-  const supabase = await createClient();
-  const { data } = await supabase
-    .from("sets")
-    .select(SET_SELECT)
-    .order("created_at", { ascending: false })
-    .limit(limit);
+  const data = await db.query.sets.findMany({
+    with: setWithRelations,
+    orderBy: [desc(sets.createdAt)],
+    limit,
+  });
 
-  return (data || []).map(normalizeSet);
+  return data.map(normalizeSet);
 }
 
 export async function getSetBySlug(slug: string) {
-  const supabase = await createClient();
-  const { data } = await supabase
-    .from("sets")
-    .select(`
-      id, title, slug, performed_at, duration_seconds, stage,
-      set_artists(position, artists(id, name, slug)),
-      set_genres(genres(id, name, slug)),
-      events(id, name, slug, date_start, location, stages, festivals(id, name, slug)),
-      sources(id, platform, url, source_type, media_type, quality, embed_supported, is_active),
-      tracklist_entries(id, position, title, timestamp_seconds)
-    `)
-    .eq("slug", slug)
-    .single();
+  const data = await db.query.sets.findFirst({
+    where: eq(sets.slug, slug),
+    with: setWithRelationsDetailed,
+  });
 
   if (!data) return null;
   return normalizeSet(data);
 }
 
 export async function getSetsByArtist(artistId: string) {
-  const supabase = await createClient();
-  const { data } = await supabase
-    .from("sets")
-    .select(`
-      id, title, slug, performed_at, duration_seconds, stage,
-      set_artists!inner(position, artists(id, name, slug)),
-      set_genres(genres(id, name, slug)),
-      events(id, name, slug, festivals(id, name, slug)),
-      sources(id, platform, url, source_type, media_type, quality, is_active)
-    `)
-    .eq("set_artists.artist_id", artistId)
-    .order("performed_at", { ascending: false });
+  // Find set IDs for this artist, then fetch full sets
+  const artistSets = await db
+    .select({ setId: setArtists.setId })
+    .from(setArtists)
+    .where(eq(setArtists.artistId, artistId));
 
-  return (data || []).map(normalizeSet);
+  if (artistSets.length === 0) return [];
+
+  const setIds = artistSets.map((s) => s.setId);
+
+  const data = await db.query.sets.findMany({
+    where: inArray(sets.id, setIds),
+    with: setWithRelations,
+    orderBy: [desc(sets.performedAt)],
+  });
+
+  return data.map(normalizeSet);
 }
 
 export async function getSetsByEvent(eventId: string) {
-  const supabase = await createClient();
-  const { data } = await supabase
-    .from("sets")
-    .select(SET_SELECT)
-    .eq("event_id", eventId)
-    .order("performed_at", { ascending: true });
+  const data = await db.query.sets.findMany({
+    where: eq(sets.eventId, eventId),
+    with: setWithRelations,
+    orderBy: [asc(sets.performedAt)],
+  });
 
-  return (data || []).map(normalizeSet);
+  return data.map(normalizeSet);
 }
 
 export async function getSetsByGenre(genreId: string, page = 1, perPage = 20) {
-  const supabase = await createClient();
-  const from = (page - 1) * perPage;
-  const to = from + perPage - 1;
+  const offset = (page - 1) * perPage;
 
-  const { data, count } = await supabase
-    .from("sets")
-    .select(`
-      id, title, slug, performed_at, duration_seconds, stage,
-      set_artists(position, artists(id, name, slug)),
-      set_genres!inner(genres(id, name, slug)),
-      events(id, name, slug, festivals(id, name, slug)),
-      sources(id, platform, url, source_type, media_type, quality, is_active)
-    `, { count: "exact" })
-    .eq("set_genres.genre_id", genreId)
-    .order("performed_at", { ascending: false })
-    .range(from, to);
+  // Find set IDs for this genre
+  const genreSets = await db
+    .select({ setId: setGenres.setId })
+    .from(setGenres)
+    .where(eq(setGenres.genreId, genreId));
+
+  const totalCount = genreSets.length;
+
+  if (totalCount === 0) {
+    return { sets: [], total: 0, page, perPage };
+  }
+
+  const setIds = genreSets.map((s) => s.setId);
+
+  const data = await db.query.sets.findMany({
+    where: inArray(sets.id, setIds),
+    with: setWithRelations,
+    orderBy: [desc(sets.performedAt)],
+    limit: perPage,
+    offset,
+  });
 
   return {
-    sets: (data || []).map(normalizeSet),
-    total: count || 0,
+    sets: data.map(normalizeSet),
+    total: totalCount,
     page,
     perPage,
   };
 }
 
-interface SetArtistRow {
-  position: number;
-  artists: { id: string; name: string; slug: string } | null;
-}
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function normalizeSet(row: any) {
+  const artists = (row.setArtists || [])
+    .sort((a: { position: number }, b: { position: number }) => a.position - b.position)
+    .map((sa: { artist: unknown }) => sa.artist)
+    .filter((a: unknown): a is NonNullable<typeof a> => a !== null);
 
-interface SetGenreRow {
-  genres: { id: string; name: string; slug: string } | null;
-}
-
-interface TracklistRow {
-  id: string;
-  position: number;
-  title: string;
-  timestamp_seconds: number | null;
-}
-
-interface SetRow {
-  id: string;
-  title: string;
-  slug: string;
-  performed_at: string | null;
-  duration_seconds: number | null;
-  stage: string | null;
-  set_artists: SetArtistRow[];
-  set_genres: SetGenreRow[];
-  events: {
-    id: string;
-    name: string;
-    slug: string;
-    festivals: { id: string; name: string; slug: string } | null;
-    date_start?: string | null;
-    location?: string | null;
-    stages?: string[] | null;
-  } | null;
-  sources: {
-    id: string;
-    platform: "youtube" | "soundcloud";
-    source_type: "official" | "artist" | "fan";
-    media_type?: "video" | "audio";
-    quality?: string | null;
-    is_active?: boolean;
-    url?: string;
-    embed_supported?: boolean;
-  }[];
-  tracklist_entries?: TracklistRow[];
-}
-
-export function normalizeSet(row: SetRow) {
-  const artists = (row.set_artists || [])
-    .sort((a, b) => a.position - b.position)
-    .map((sa) => sa.artists)
-    .filter((a): a is NonNullable<typeof a> => a !== null);
-
-  const genres = (row.set_genres || [])
-    .map((sg) => sg.genres)
-    .filter((g): g is NonNullable<typeof g> => g !== null);
+  const genres = (row.setGenres || [])
+    .map((sg: { genre: unknown }) => sg.genre)
+    .filter((g: unknown): g is NonNullable<typeof g> => g !== null);
 
   const sources = row.sources || [];
-  const youtubeSource = sources.find((s) => s.platform === "youtube" && s.url);
+  const youtubeSource = sources.find(
+    (s: { platform: string; url?: string }) => s.platform === "youtube" && s.url
+  );
   const thumbnailUrl = getYouTubeThumbnail(youtubeSource?.url ?? null);
 
   return {
     id: row.id,
     title: row.title,
     slug: row.slug,
-    performed_at: row.performed_at,
-    duration_seconds: row.duration_seconds,
+    performed_at: row.performedAt,
+    duration_seconds: row.durationSeconds,
     stage: row.stage,
     artists,
     genres,
-    event: row.events || null,
-    festival: row.events?.festivals || null,
-    sources,
+    event: row.event
+      ? {
+          id: row.event.id,
+          name: row.event.name,
+          slug: row.event.slug,
+          festivals: row.event.festival || null,
+          date_start: row.event.dateStart ?? undefined,
+          location: row.event.location ?? undefined,
+          stages: row.event.stages ?? undefined,
+        }
+      : null,
+    festival: row.event?.festival || null,
+    sources: sources.map((s: Record<string, unknown>) => ({
+      id: s.id,
+      platform: s.platform,
+      url: s.url,
+      setId: s.setId,
+      sourceType: s.sourceType,
+      mediaType: s.mediaType,
+      quality: s.quality,
+      embedSupported: s.embedSupported,
+      isActive: s.isActive,
+      createdAt: s.createdAt,
+    })),
     thumbnailUrl,
-    tracklist: row.tracklist_entries
-      ? [...row.tracklist_entries].sort((a, b) => a.position - b.position)
+    tracklist: row.tracklistEntries
+      ? [...row.tracklistEntries]
+          .sort((a: { position: number }, b: { position: number }) => a.position - b.position)
+          .map((t: { id: string; position: number; title: string; timestampSeconds: number | null }) => ({
+            id: t.id,
+            position: t.position,
+            title: t.title,
+            timestamp_seconds: t.timestampSeconds,
+          }))
       : undefined,
   };
 }

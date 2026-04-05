@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { requireAdmin } from "@/lib/queries/auth";
+import { requireAdmin } from "@/lib/auth-helpers";
 import { getScraperByName } from "@/lib/services/scrapers/registry";
 import { ScraperRunner } from "@/lib/services/scrapers/runner";
 import type { ScraperStats } from "@/lib/services/scrapers/types";

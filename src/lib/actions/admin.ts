@@ -1,8 +1,18 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { requireAdmin } from "@/lib/queries/auth";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { eq, sql } from "drizzle-orm";
+import { db } from "@/lib/db";
+import { requireAdmin } from "@/lib/auth-helpers";
+import {
+  submissions,
+  sets,
+  setArtists,
+  setGenres,
+  events,
+  genres,
+  artists,
+} from "@/lib/db/schema";
 import { processSubmission } from "@/lib/services/submission-processor";
 import { slugify } from "@/lib/utils";
 import {
@@ -18,8 +28,7 @@ export async function approveSubmission(submissionId: string) {
 
   if (result.status === "approved") {
     // Refresh search index after new set creation
-    const supabase = createAdminClient();
-    await supabase.rpc("refresh_search_view");
+    await db.execute(sql`SELECT refresh_search_view()`);
   }
 
   revalidatePath("/admin/submissions");
@@ -28,40 +37,38 @@ export async function approveSubmission(submissionId: string) {
 
 export async function rejectSubmission(submissionId: string, reason: string) {
   await requireAdmin();
-  const supabase = createAdminClient();
 
-  await supabase
-    .from("submissions")
-    .update({
-      status: "rejected" as const,
-      rejection_reason: reason,
-      processed_at: new Date().toISOString(),
+  await db
+    .update(submissions)
+    .set({
+      status: "rejected",
+      rejectionReason: reason,
+      processedAt: new Date(),
     })
-    .eq("id", submissionId);
+    .where(eq(submissions.id, submissionId));
 
   revalidatePath("/admin/submissions");
 }
 
 export async function reprocessSubmission(submissionId: string) {
   await requireAdmin();
-  const supabase = createAdminClient();
 
   // Reset to pending
-  await supabase
-    .from("submissions")
-    .update({
-      status: "pending" as const,
-      rejection_reason: null,
-      processed_at: null,
-      matched_set_id: null,
+  await db
+    .update(submissions)
+    .set({
+      status: "pending",
+      rejectionReason: null,
+      processedAt: null,
+      matchedSetId: null,
     })
-    .eq("id", submissionId);
+    .where(eq(submissions.id, submissionId));
 
   // Re-process
   const result = await processSubmission(submissionId);
 
   if (result.status === "approved") {
-    await supabase.rpc("refresh_search_view");
+    await db.execute(sql`SELECT refresh_search_view()`);
   }
 
   revalidatePath("/admin/submissions");
@@ -82,11 +89,17 @@ export async function updateSet(
   }
 ) {
   await requireAdmin();
-  const supabase = createAdminClient();
 
-  const { error } = await supabase.from("sets").update(data).eq("id", setId);
+  // Map snake_case input keys to camelCase schema columns
+  const updateData: Record<string, unknown> = {};
+  if (data.title !== undefined) updateData.title = data.title;
+  if (data.slug !== undefined) updateData.slug = data.slug;
+  if (data.performed_at !== undefined) updateData.performedAt = data.performed_at;
+  if (data.duration_seconds !== undefined) updateData.durationSeconds = data.duration_seconds;
+  if (data.stage !== undefined) updateData.stage = data.stage;
+  if (data.event_id !== undefined) updateData.eventId = data.event_id;
 
-  if (error) throw new Error(error.message);
+  await db.update(sets).set(updateData).where(eq(sets.id, setId));
 
   revalidatePath("/admin/sets");
   revalidatePath(`/admin/sets/${setId}/edit`);
@@ -94,24 +107,22 @@ export async function updateSet(
 
 export async function updateSetArtists(
   setId: string,
-  artists: { id: string; position: number }[]
+  artistList: { id: string; position: number }[]
 ) {
   await requireAdmin();
-  const supabase = createAdminClient();
 
   // Delete existing associations
-  await supabase.from("set_artists").delete().eq("set_id", setId);
+  await db.delete(setArtists).where(eq(setArtists.setId, setId));
 
   // Insert new ones
-  if (artists.length > 0) {
-    const { error } = await supabase.from("set_artists").insert(
-      artists.map((a) => ({
-        set_id: setId,
-        artist_id: a.id,
+  if (artistList.length > 0) {
+    await db.insert(setArtists).values(
+      artistList.map((a) => ({
+        setId,
+        artistId: a.id,
         position: a.position,
       }))
     );
-    if (error) throw new Error(error.message);
   }
 
   revalidatePath("/admin/sets");
@@ -120,20 +131,18 @@ export async function updateSetArtists(
 
 export async function updateSetGenres(setId: string, genreIds: string[]) {
   await requireAdmin();
-  const supabase = createAdminClient();
 
   // Delete existing associations
-  await supabase.from("set_genres").delete().eq("set_id", setId);
+  await db.delete(setGenres).where(eq(setGenres.setId, setId));
 
   // Insert new ones
   if (genreIds.length > 0) {
-    const { error } = await supabase.from("set_genres").insert(
+    await db.insert(setGenres).values(
       genreIds.map((genreId) => ({
-        set_id: setId,
-        genre_id: genreId,
+        setId,
+        genreId,
       }))
     );
-    if (error) throw new Error(error.message);
   }
 
   revalidatePath("/admin/sets");
@@ -146,83 +155,79 @@ export async function createEvent(data: {
   date_start?: string | null;
 }) {
   await requireAdmin();
-  const supabase = createAdminClient();
 
   const slug = slugify(data.name);
-  const { data: newEvent, error } = await supabase
-    .from("events")
-    .insert({
+  const [newEvent] = await db
+    .insert(events)
+    .values({
       name: data.name,
       slug,
-      festival_id: data.festival_id ?? null,
-      date_start: data.date_start ?? null,
+      festivalId: data.festival_id ?? null,
+      dateStart: data.date_start ?? null,
     })
-    .select("id, name, slug")
-    .single();
+    .returning({
+      id: events.id,
+      name: events.name,
+      slug: events.slug,
+    });
 
-  if (error) throw new Error(error.message);
   return newEvent;
 }
 
 export async function createGenre(name: string) {
   await requireAdmin();
-  const supabase = createAdminClient();
 
   const slug = slugify(name);
-  const { data: newGenre, error } = await supabase
-    .from("genres")
-    .insert({ name, slug })
-    .select("id, name, slug")
-    .single();
+  const [newGenre] = await db
+    .insert(genres)
+    .values({ name, slug })
+    .returning({
+      id: genres.id,
+      name: genres.name,
+      slug: genres.slug,
+    });
 
-  if (error) throw new Error(error.message);
   return newGenre;
 }
 
 export async function createArtist(name: string) {
   await requireAdmin();
-  const supabase = createAdminClient();
 
   const slug = slugify(name);
-  const { data: newArtist, error } = await supabase
-    .from("artists")
-    .insert({ name, slug })
-    .select("id, name, slug")
-    .single();
+  const [newArtist] = await db
+    .insert(artists)
+    .values({ name, slug })
+    .returning({
+      id: artists.id,
+      name: artists.name,
+      slug: artists.slug,
+    });
 
-  if (error) throw new Error(error.message);
   return newArtist;
 }
 
 export async function bulkAssignGenre(setIds: string[], genreId: string) {
   await requireAdmin();
-  const supabase = createAdminClient();
 
-  // Insert set_genres rows, ignoring conflicts (upsert with onConflict)
-  const rows = setIds.map((setId) => ({ set_id: setId, genre_id: genreId }));
+  const rows = setIds.map((setId) => ({ setId, genreId }));
 
-  const { error } = await supabase
-    .from("set_genres")
-    .upsert(rows, { onConflict: "set_id,genre_id", ignoreDuplicates: true });
-
-  if (error) throw new Error(error.message);
+  await db
+    .insert(setGenres)
+    .values(rows)
+    .onConflictDoNothing();
 
   revalidatePath("/admin/sets");
 }
 
 export async function mergeArtists(canonicalId: string, duplicateId: string) {
   await requireAdmin();
-  const supabase = createAdminClient();
 
-  const { error } = await supabase.rpc("merge_artists", {
-    canonical_id: canonicalId,
-    duplicate_id: duplicateId,
-  });
-
-  if (error) throw new Error(`Merge failed: ${error.message}`);
+  await db.execute(
+    sql`SELECT merge_artists(${canonicalId}::uuid, ${duplicateId}::uuid)`
+  );
 
   // Refresh search view since set-artist associations changed
-  await supabase.rpc("refresh_search_view");
+  await db.execute(sql`SELECT refresh_search_view()`);
 
   revalidatePath("/admin/artists");
   revalidatePath("/admin/artists/duplicates");
@@ -230,22 +235,18 @@ export async function mergeArtists(canonicalId: string, duplicateId: string) {
 
 export async function findDuplicateArtists(threshold?: number) {
   await requireAdmin();
-  const supabase = createAdminClient();
 
-  const { data, error } = await supabase.rpc("find_similar_artists", {
-    similarity_threshold: threshold ?? 0.7,
-  });
+  const result = await db.execute(
+    sql`SELECT * FROM find_similar_artists(${threshold ?? 0.7})`
+  );
 
-  if (error) throw new Error(error.message);
-  return data ?? [];
+  return [...result] as { artist1_id: string; artist1_name: string; artist2_id: string; artist2_name: string; sim: number }[];
 }
 
 export async function refreshSearchIndex() {
   await requireAdmin();
-  const supabase = createAdminClient();
 
-  const { error } = await supabase.rpc("refresh_search_view");
-  if (error) throw new Error(error.message);
+  await db.execute(sql`SELECT refresh_search_view()`);
 
   revalidatePath("/admin");
 }

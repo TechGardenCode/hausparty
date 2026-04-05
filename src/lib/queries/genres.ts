@@ -1,22 +1,29 @@
-import { createClient } from "@/lib/supabase/server";
+import { db } from "@/lib/db";
+import { genres } from "@/lib/db/schema";
+import { eq } from "drizzle-orm";
 
 export async function getAllGenres() {
-  const supabase = await createClient();
-  const { data } = await supabase
-    .from("genres")
-    .select("id, name, slug")
-    .order("name");
+  const data = await db.query.genres.findMany({
+    orderBy: [genres.name],
+  });
 
-  return data || [];
+  return data.map((g) => ({
+    id: g.id,
+    name: g.name,
+    slug: g.slug,
+  }));
 }
 
 export async function getGenreBySlug(slug: string) {
-  const supabase = await createClient();
-  const { data } = await supabase
-    .from("genres")
-    .select("id, name, slug")
-    .eq("slug", slug)
-    .single();
+  const data = await db.query.genres.findFirst({
+    where: eq(genres.slug, slug),
+  });
 
-  return data;
+  if (!data) return null;
+
+  return {
+    id: data.id,
+    name: data.name,
+    slug: data.slug,
+  };
 }
