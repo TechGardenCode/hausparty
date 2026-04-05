@@ -3,6 +3,8 @@ import { events, eventArtists, festivals, scraperEntityMap } from "@/lib/db/sche
 import { eq, and } from "drizzle-orm";
 import { slugify } from "@/lib/utils";
 import { findOrCreateArtist } from "@/lib/services/artist-matching";
+import { normalizeArtistName } from "@/lib/services/normalization/artist-names";
+import { normalizeEventName } from "@/lib/services/normalization/event-names";
 import type { NormalizedEvent, NormalizedArtist } from "./types";
 
 interface UpsertResult {
@@ -50,7 +52,7 @@ async function upsertArtist(
   const existingId = await findMapping(scraperName, artist.externalId, "artist");
   if (existingId) return existingId;
 
-  const { artistId } = await findOrCreateArtist(artist.name);
+  const { artistId } = await findOrCreateArtist(normalizeArtistName(artist.name));
 
   await createMapping(scraperName, artist.externalId, "artist", artistId);
   return artistId;
@@ -88,12 +90,17 @@ export async function upsertEvent(
     return { action: "skipped", eventId: existingEventId };
   }
 
+  // Normalize event name for consistent display
+  const normalized = normalizeEventName(event.name, event.festivalName, event.date);
+  const displayName = normalized.displayName;
+  const resolvedFestivalName = normalized.festivalName ?? event.festivalName;
+
   let festivalId: string | null = null;
-  if (event.festivalName) {
-    festivalId = await upsertFestival(scraperName, event.festivalName);
+  if (resolvedFestivalName) {
+    festivalId = await upsertFestival(scraperName, resolvedFestivalName);
   }
 
-  const eventSlug = slugify(event.name);
+  const eventSlug = slugify(displayName);
   const [existingEvent] = await db
     .select({ id: events.id })
     .from(events)
@@ -127,7 +134,7 @@ export async function upsertEvent(
     const [newEvent] = await db
       .insert(events)
       .values({
-        name: event.name,
+        name: displayName,
         slug: eventSlug,
         dateStart: event.date,
         dateEnd: event.dateEnd ?? null,
@@ -142,7 +149,7 @@ export async function upsertEvent(
     const [retryEvent] = await db
       .insert(events)
       .values({
-        name: event.name,
+        name: displayName,
         slug: fallbackSlug,
         dateStart: event.date,
         dateEnd: event.dateEnd ?? null,

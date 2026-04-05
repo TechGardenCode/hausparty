@@ -14,11 +14,42 @@ export function formatDuration(seconds: number | null | undefined): string {
   return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
+/** Characters that don't decompose via NFD but should transliterate. */
+const TRANSLITERATE: Record<string, string> = {
+  "ø": "o", "Ø": "O", "ð": "d", "Ð": "D", "þ": "th", "Þ": "Th",
+  "æ": "ae", "Æ": "AE", "œ": "oe", "Œ": "OE", "ß": "ss",
+  "ł": "l", "Ł": "L", "đ": "d", "Đ": "D",
+};
+
 export function slugify(text: string): string {
-  return text
+  if (!text.trim()) return "";
+
+  const slug = text
+    // Transliterate characters that NFD can't decompose
+    .replace(/[øØðÐþÞæÆœŒßłŁđĐ]/g, (c) => TRANSLITERATE[c] ?? c)
+    // Decompose Unicode (é → e + combining accent)
+    .normalize("NFD")
+    // Strip combining diacritical marks
+    .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "");
+    .replace(/^-+|-+$/g, "");
+
+  // If the slug is empty or too short (all non-Latin chars), use a hash fallback
+  if (slug.length < 2) {
+    const hash = simpleHash(text.toLowerCase());
+    return slug ? `${slug}-${hash}` : hash;
+  }
+
+  return slug;
+}
+
+function simpleHash(str: string): string {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    hash = ((hash << 5) - hash + str.charCodeAt(i)) | 0;
+  }
+  return Math.abs(hash).toString(36);
 }
 
 /**

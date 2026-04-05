@@ -63,6 +63,34 @@ describe("slugify", () => {
   it("collapses consecutive hyphens", () => {
     expect(slugify("a   b   c")).toBe("a-b-c");
   });
+
+  it("transliterates accented characters", () => {
+    expect(slugify("AVÉ")).toBe("ave");
+    expect(slugify("Tiësto")).toBe("tiesto");
+    expect(slugify("RÜFÜS DU SOL")).toBe("rufus-du-sol");
+    expect(slugify("Ben Böhmer")).toBe("ben-bohmer");
+    expect(slugify("Sónar")).toBe("sonar");
+  });
+
+  it("transliterates non-decomposable characters", () => {
+    expect(slugify("Herø")).toBe("hero");
+    expect(slugify("Ørjan")).toBe("orjan");
+    expect(slugify("Beyoncé")).toBe("beyonce");
+    expect(slugify("Rižik")).toBe("rizik");
+  });
+
+  it("generates hash fallback for non-Latin names", () => {
+    const slug = slugify("???????");
+    expect(slug.length).toBeGreaterThan(0);
+    // Should be deterministic
+    expect(slugify("???????")).toBe(slug);
+  });
+
+  it("uses prefix + hash for partially non-Latin names", () => {
+    const slug = slugify("X");
+    // Single char slug gets hash appended
+    expect(slug).toMatch(/^x-/);
+  });
 });
 
 describe("formatRelativeDate", () => {
