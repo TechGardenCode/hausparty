@@ -1,108 +1,109 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-// Mock admin client
-const mockSelect = vi.fn();
-const mockEq = vi.fn();
-const mockSingle = vi.fn();
-
-vi.mock("@/lib/supabase/admin", () => ({
-  createAdminClient: () => ({
-    from: () => ({
-      select: (...args: unknown[]) => {
-        mockSelect(...args);
-        return {
-          eq: (...eqArgs: unknown[]) => {
-            mockEq(...eqArgs);
-            return { single: mockSingle };
-          },
-        };
-      },
-    }),
-  }),
+// Mock next-auth (auth-helpers imports from @/lib/auth which imports next-auth)
+const mockAuth = vi.fn();
+vi.mock("@/lib/auth", () => ({
+  auth: () => mockAuth(),
 }));
 
-// Mock server client
-const mockGetUser = vi.fn();
-vi.mock("@/lib/supabase/server", () => ({
-  createClient: () =>
-    Promise.resolve({
-      auth: { getUser: mockGetUser },
-    }),
+// Mock Drizzle db with chainable proxy
+let selectResult: { role: string }[] = [];
+
+function createChainProxy(): unknown {
+  return new Proxy(function () {}, {
+    get(_target, prop) {
+      if (prop === "then" || prop === "catch" || prop === "finally")
+        return undefined;
+      return (..._args: unknown[]) => {
+        if (prop === "limit") {
+          return Promise.resolve(selectResult);
+        }
+        return createChainProxy();
+      };
+    },
+    apply() {
+      return createChainProxy();
+    },
+  });
+}
+
+vi.mock("@/lib/db", () => ({
+  db: {
+    select: () => createChainProxy(),
+  },
 }));
 
-import { getUserRole, isAdmin, requireAdmin } from "./auth";
+const { getUserRole, isAdmin, requireAdmin } = await import(
+  "@/lib/auth-helpers"
+);
 
 describe("getUserRole", () => {
   beforeEach(() => {
-    vi.resetAllMocks();
+    vi.clearAllMocks();
+    selectResult = [];
   });
 
   it("returns role from user_roles table", async () => {
-    mockSingle.mockResolvedValue({ data: { role: "site_admin" }, error: null });
+    selectResult = [{ role: "site_admin" }];
     const role = await getUserRole("user-123");
     expect(role).toBe("site_admin");
-    expect(mockEq).toHaveBeenCalledWith("user_id", "user-123");
   });
 
   it("defaults to viewer when no role row exists", async () => {
-    mockSingle.mockResolvedValue({ data: null, error: null });
+    selectResult = [];
     const role = await getUserRole("user-456");
-    expect(role).toBe("viewer");
-  });
-
-  it("defaults to viewer on error", async () => {
-    mockSingle.mockResolvedValue({ data: null, error: { message: "not found" } });
-    const role = await getUserRole("user-789");
     expect(role).toBe("viewer");
   });
 });
 
 describe("isAdmin", () => {
   beforeEach(() => {
-    vi.resetAllMocks();
+    vi.clearAllMocks();
+    selectResult = [];
   });
 
   it("returns true for site_admin", async () => {
-    mockSingle.mockResolvedValue({ data: { role: "site_admin" }, error: null });
+    selectResult = [{ role: "site_admin" }];
     expect(await isAdmin("admin-user")).toBe(true);
   });
 
   it("returns false for viewer", async () => {
-    mockSingle.mockResolvedValue({ data: { role: "viewer" }, error: null });
+    selectResult = [{ role: "viewer" }];
     expect(await isAdmin("viewer-user")).toBe(false);
   });
 
   it("returns false for artist role", async () => {
-    mockSingle.mockResolvedValue({ data: { role: "artist" }, error: null });
+    selectResult = [{ role: "artist" }];
     expect(await isAdmin("artist-user")).toBe(false);
   });
 
   it("returns false when no role exists", async () => {
-    mockSingle.mockResolvedValue({ data: null, error: null });
+    selectResult = [];
     expect(await isAdmin("no-role-user")).toBe(false);
   });
 });
 
 describe("requireAdmin", () => {
   beforeEach(() => {
-    vi.resetAllMocks();
+    vi.clearAllMocks();
+    selectResult = [];
   });
 
   it("returns user id when user is admin", async () => {
-    mockGetUser.mockResolvedValue({ data: { user: { id: "admin-id" } } });
-    mockSingle.mockResolvedValue({ data: { role: "site_admin" }, error: null });
+    mockAuth.mockResolvedValue({ user: { id: "admin-id" } });
+    selectResult = [{ role: "site_admin" }];
     const userId = await requireAdmin();
     expect(userId).toBe("admin-id");
   });
 
   it("throws Unauthorized when no user session", async () => {
-    mockGetUser.mockResolvedValue({ data: { user: null } });
+    mockAuth.mockResolvedValue(null);
     await expect(requireAdmin()).rejects.toThrow("Unauthorized");
   });
 
   it("throws Forbidden when user is not admin", async () => {
-    mockGetUser.mockResolvedValue({ data: { user: { id: "viewer-id" } } });
-    mockSingle.mockResolvedValue({ data: { role: "viewer" }, error: null });
+    mockAuth.mockResolvedValue({ user: { id: "viewer-id" } });
+    selectResult = [{ role: "viewer" }];
     await expect(requireAdmin()).rejects.toThrow("Forbidden");
   });
 });

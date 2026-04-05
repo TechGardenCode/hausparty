@@ -15,6 +15,7 @@ export type {
   ScraperRun,
   ScraperEntityMap,
   UserSettings,
+  EventArtist,
   Platform,
   SourceType,
   MediaType,

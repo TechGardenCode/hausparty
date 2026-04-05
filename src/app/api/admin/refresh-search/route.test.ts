@@ -1,11 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-// Mock the admin client before importing the route
-const mockRpc = vi.fn();
-vi.mock("@/lib/supabase/admin", () => ({
-  createAdminClient: () => ({
-    rpc: mockRpc,
-  }),
+// Mock the Drizzle db
+const mockExecute = vi.fn();
+vi.mock("@/lib/db", () => ({
+  db: {
+    execute: (...args: unknown[]) => mockExecute(...args),
+  },
 }));
 
 import { POST } from "./route";
@@ -46,7 +46,7 @@ describe("POST /api/admin/refresh-search", () => {
   });
 
   it("returns 200 with refreshed status on success", async () => {
-    mockRpc.mockResolvedValue({ error: null });
+    mockExecute.mockResolvedValue(undefined);
     const request = new Request("http://localhost/api/admin/refresh-search", {
       method: "POST",
       headers: { authorization: "Bearer test-key-123" },
@@ -56,11 +56,11 @@ describe("POST /api/admin/refresh-search", () => {
     const body = await response.json();
     expect(body.refreshed).toBe(true);
     expect(body.timestamp).toBeDefined();
-    expect(mockRpc).toHaveBeenCalledWith("refresh_search_view");
+    expect(mockExecute).toHaveBeenCalledTimes(1);
   });
 
-  it("returns 500 when RPC fails", async () => {
-    mockRpc.mockResolvedValue({ error: { message: "View refresh failed" } });
+  it("returns 500 when db.execute fails", async () => {
+    mockExecute.mockRejectedValue(new Error("View refresh failed"));
     const request = new Request("http://localhost/api/admin/refresh-search", {
       method: "POST",
       headers: { authorization: "Bearer test-key-123" },

@@ -4,6 +4,7 @@ import type {
   artists,
   festivals,
   events,
+  eventArtists,
   sets,
   sources,
   tracklistEntries,
@@ -33,6 +34,7 @@ export type UserRoleRow = InferSelectModel<typeof userRoles>;
 export type ScraperRun = InferSelectModel<typeof scraperRuns>;
 export type ScraperEntityMap = InferSelectModel<typeof scraperEntityMap>;
 export type UserSettings = InferSelectModel<typeof userSettings>;
+export type EventArtist = InferSelectModel<typeof eventArtists>;
 
 // Enum types
 export type Platform = "youtube" | "soundcloud";

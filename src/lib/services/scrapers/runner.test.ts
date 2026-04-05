@@ -2,37 +2,85 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import type { Scraper, NormalizedEvent } from "./types";
 
 // Mock upsert module
+const mockUpsertEvent = vi.fn().mockResolvedValue({ action: "created", eventId: "evt-1" });
+
 vi.mock("./upsert", () => ({
-  upsertEvent: vi.fn().mockResolvedValue({ action: "created", eventId: "evt-1" }),
+  upsertEvent: (...args: unknown[]) => mockUpsertEvent(...args),
 }));
 
-// Mock admin client
-const mockInsertChain = {
-  select: vi.fn().mockReturnThis(),
-  single: vi.fn().mockResolvedValue({ data: { id: "run-id-1" }, error: null }),
-};
-const mockUpdateChain = {
-  eq: vi.fn().mockResolvedValue({ data: null, error: null }),
-};
+// ---- Drizzle db mock for scraper_runs operations ----
+const insertedRuns: unknown[] = [];
+const updatedRuns: { values: unknown; runId: string }[] = [];
+let runIdCounter = 0;
+const mockExecute = vi.fn().mockResolvedValue(undefined);
 
-const mockFrom = vi.fn().mockImplementation((table: string) => {
-  if (table === "scraper_runs") {
-    return {
-      insert: vi.fn().mockReturnValue(mockInsertChain),
-      update: vi.fn().mockReturnValue(mockUpdateChain),
-    };
+function getTableName(tableObj: unknown): string {
+  if (tableObj && typeof tableObj === "object") {
+    const sym = Object.getOwnPropertySymbols(tableObj).find((s) =>
+      s.toString().includes("Name")
+    );
+    if (sym) return String((tableObj as Record<symbol, unknown>)[sym]);
   }
-  return {};
-});
+  return "unknown";
+}
 
-const mockRpc = vi.fn().mockResolvedValue({ data: null, error: null });
+function createChainProxy(context: { tableName: string }): unknown {
+  return new Proxy(function () {}, {
+    get(_target, prop) {
+      if (prop === "then" || prop === "catch" || prop === "finally") return undefined;
+      return (...args: unknown[]) => {
+        if (prop === "values") {
+          insertedRuns.push(args[0]);
+          return createChainProxy(context);
+        }
+        if (prop === "returning") {
+          runIdCounter++;
+          return Promise.resolve([{ id: `run-id-${runIdCounter}` }]);
+        }
+        if (prop === "set") {
+          // Track the update values — store for assertion
+          updatedRuns.push({ values: args[0], runId: "" });
+          return createChainProxy(context);
+        }
+        if (prop === "where") {
+          // Terminal for update chain
+          return Promise.resolve();
+        }
+        return createChainProxy(context);
+      };
+    },
+    apply() {
+      return createChainProxy(context);
+    },
+  });
+}
 
-vi.mock("@/lib/supabase/admin", () => ({
-  createAdminClient: () => ({ from: mockFrom, rpc: mockRpc }),
+const mockDb = {
+  insert: (tableObj: unknown) => {
+    const tableName = getTableName(tableObj);
+    return createChainProxy({ tableName });
+  },
+  update: (tableObj: unknown) => {
+    const tableName = getTableName(tableObj);
+    return createChainProxy({ tableName });
+  },
+  execute: mockExecute,
+};
+
+vi.mock("@/lib/db", () => ({
+  db: new Proxy(
+    {},
+    {
+      get(_target, prop) {
+        const val = (mockDb as Record<string | symbol, unknown>)[prop];
+        if (typeof val === "function") return val.bind(mockDb);
+        return val;
+      },
+    }
+  ),
 }));
 
 const { ScraperRunner } = await import("./runner");
-const { upsertEvent } = await import("./upsert");
 
 describe("ScraperRunner", () => {
   const normalizedEvent: NormalizedEvent = {
@@ -51,13 +99,13 @@ describe("ScraperRunner", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    // Re-setup default mocks after clear
-    mockInsertChain.select.mockReturnThis();
-    mockInsertChain.single.mockResolvedValue({ data: { id: "run-id-1" }, error: null });
-    mockUpdateChain.eq.mockResolvedValue({ data: null, error: null });
+    insertedRuns.length = 0;
+    updatedRuns.length = 0;
+    runIdCounter = 0;
+    mockExecute.mockResolvedValue(undefined);
+    mockUpsertEvent.mockResolvedValue({ action: "created", eventId: "evt-1" });
     (mockScraper.fetch as ReturnType<typeof vi.fn>).mockResolvedValue([{ id: 1 }, { id: 2 }]);
     (mockScraper.normalize as ReturnType<typeof vi.fn>).mockReturnValue(normalizedEvent);
-    (upsertEvent as ReturnType<typeof vi.fn>).mockResolvedValue({ action: "created", eventId: "evt-1" });
   });
 
   it("creates a scraper_runs entry and returns stats", async () => {
@@ -91,7 +139,7 @@ describe("ScraperRunner", () => {
   });
 
   it("counts errors per item without aborting", async () => {
-    (upsertEvent as ReturnType<typeof vi.fn>)
+    mockUpsertEvent
       .mockRejectedValueOnce(new Error("DB error"))
       .mockResolvedValueOnce({ action: "created", eventId: "evt-2" });
 
@@ -106,15 +154,15 @@ describe("ScraperRunner", () => {
     const runner = new ScraperRunner();
     await runner.run(mockScraper, {});
 
-    expect(mockRpc).toHaveBeenCalledWith("refresh_search_view");
+    expect(mockExecute).toHaveBeenCalledOnce();
   });
 
   it("does not refresh search view when nothing was created", async () => {
-    (upsertEvent as ReturnType<typeof vi.fn>).mockResolvedValue({ action: "skipped", eventId: "evt-1" });
+    mockUpsertEvent.mockResolvedValue({ action: "skipped", eventId: "evt-1" });
 
     const runner = new ScraperRunner();
     await runner.run(mockScraper, {});
 
-    expect(mockRpc).not.toHaveBeenCalled();
+    expect(mockExecute).not.toHaveBeenCalled();
   });
 });

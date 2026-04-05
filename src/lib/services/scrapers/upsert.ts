@@ -1,5 +1,5 @@
 import { db } from "@/lib/db";
-import { events, festivals, scraperEntityMap } from "@/lib/db/schema";
+import { events, eventArtists, festivals, scraperEntityMap } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
 import { slugify } from "@/lib/utils";
 import { findOrCreateArtist } from "@/lib/services/artist-matching";
@@ -110,11 +110,16 @@ export async function upsertEvent(
         dateStart: event.date,
         dateEnd: event.dateEnd ?? null,
         location: event.location,
+        venue: event.venue ?? null,
         festivalId,
       })
       .where(eq(events.id, eventId));
 
     await createMapping(scraperName, event.externalId, "event", eventId);
+
+    // Upsert artists and create lineup associations
+    await upsertEventArtists(scraperName, eventId, event.artists);
+
     return { action: "updated", eventId };
   }
 
@@ -127,6 +132,7 @@ export async function upsertEvent(
         dateStart: event.date,
         dateEnd: event.dateEnd ?? null,
         location: event.location,
+        venue: event.venue ?? null,
         festivalId,
       })
       .returning({ id: events.id });
@@ -141,6 +147,7 @@ export async function upsertEvent(
         dateStart: event.date,
         dateEnd: event.dateEnd ?? null,
         location: event.location,
+        venue: event.venue ?? null,
         festivalId,
       })
       .returning({ id: events.id });
@@ -149,9 +156,33 @@ export async function upsertEvent(
 
   await createMapping(scraperName, event.externalId, "event", eventId);
 
-  for (const artist of event.artists) {
-    await upsertArtist(scraperName, artist);
-  }
+  // Upsert artists and create lineup associations
+  await upsertEventArtists(scraperName, eventId, event.artists);
 
   return { action: "created", eventId };
+}
+
+/**
+ * Upsert artists for an event and create event_artists lineup associations.
+ * Returns the internal artist IDs.
+ */
+async function upsertEventArtists(
+  scraperName: string,
+  eventId: string,
+  artists: NormalizedArtist[]
+): Promise<string[]> {
+  const artistIds: string[] = [];
+
+  for (const artist of artists) {
+    const artistId = await upsertArtist(scraperName, artist);
+    artistIds.push(artistId);
+
+    // Create lineup association (idempotent via PK constraint)
+    await db
+      .insert(eventArtists)
+      .values({ eventId, artistId })
+      .onConflictDoNothing();
+  }
+
+  return artistIds;
 }

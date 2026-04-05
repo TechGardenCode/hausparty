@@ -5,32 +5,32 @@ const makeSetRow = (overrides = {}) => ({
   id: "set-1",
   title: "Test Set",
   slug: "test-set",
-  performed_at: "2025-06-15T20:00:00Z",
-  duration_seconds: 3600,
+  performedAt: "2025-06-15T20:00:00Z",
+  durationSeconds: 3600,
   stage: "Main Stage",
-  set_artists: [
-    { position: 2, artists: { id: "a2", name: "Artist B", slug: "artist-b" } },
-    { position: 1, artists: { id: "a1", name: "Artist A", slug: "artist-a" } },
+  setArtists: [
+    { position: 2, artist: { id: "a2", name: "Artist B", slug: "artist-b" } },
+    { position: 1, artist: { id: "a1", name: "Artist A", slug: "artist-a" } },
   ],
-  set_genres: [
-    { genres: { id: "g1", name: "Techno", slug: "techno" } },
-    { genres: { id: "g2", name: "House", slug: "house" } },
+  setGenres: [
+    { genre: { id: "g1", name: "Techno", slug: "techno" } },
+    { genre: { id: "g2", name: "House", slug: "house" } },
   ],
-  events: {
+  event: {
     id: "e1",
     name: "Tomorrowland 2025",
     slug: "tomorrowland-2025",
-    festivals: { id: "f1", name: "Tomorrowland", slug: "tomorrowland" },
+    festival: { id: "f1", name: "Tomorrowland", slug: "tomorrowland" },
   },
   sources: [
     {
       id: "s1",
       platform: "youtube" as const,
       url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
-      source_type: "official" as const,
-      media_type: "video" as const,
+      sourceType: "official" as const,
+      mediaType: "video" as const,
       quality: "1080p",
-      is_active: true,
+      isActive: true,
     },
   ],
   ...overrides,
@@ -49,18 +49,18 @@ describe("normalizeSet", () => {
     expect(result.genres[0].name).toBe("Techno");
   });
 
-  it("extracts event from nested events field", () => {
+  it("extracts event from nested event field", () => {
     const result = normalizeSet(makeSetRow());
     expect(result.event?.name).toBe("Tomorrowland 2025");
   });
 
-  it("extracts festival from nested events.festivals", () => {
+  it("extracts festival from nested event.festival", () => {
     const result = normalizeSet(makeSetRow());
     expect(result.festival?.name).toBe("Tomorrowland");
   });
 
-  it("returns null event and festival when events is null", () => {
-    const result = normalizeSet(makeSetRow({ events: null }));
+  it("returns null event and festival when event is null", () => {
+    const result = normalizeSet(makeSetRow({ event: null }));
     expect(result.event).toBeNull();
     expect(result.festival).toBeNull();
   });
@@ -71,8 +71,8 @@ describe("normalizeSet", () => {
     expect(result.sources[0].platform).toBe("youtube");
   });
 
-  it("handles empty set_artists and set_genres", () => {
-    const result = normalizeSet(makeSetRow({ set_artists: [], set_genres: [] }));
+  it("handles empty setArtists and setGenres", () => {
+    const result = normalizeSet(makeSetRow({ setArtists: [], setGenres: [] }));
     expect(result.artists).toEqual([]);
     expect(result.genres).toEqual([]);
   });
@@ -80,7 +80,7 @@ describe("normalizeSet", () => {
   it("filters out null artists from join", () => {
     const result = normalizeSet(
       makeSetRow({
-        set_artists: [{ position: 1, artists: null }],
+        setArtists: [{ position: 1, artist: null }],
       })
     );
     expect(result.artists).toEqual([]);
@@ -89,9 +89,9 @@ describe("normalizeSet", () => {
   it("sorts tracklist by position when present", () => {
     const result = normalizeSet(
       makeSetRow({
-        tracklist_entries: [
-          { id: "t2", position: 2, title: "Track B", timestamp_seconds: 120 },
-          { id: "t1", position: 1, title: "Track A", timestamp_seconds: 0 },
+        tracklistEntries: [
+          { id: "t2", position: 2, title: "Track B", timestampSeconds: 120 },
+          { id: "t1", position: 1, title: "Track A", timestampSeconds: 0 },
         ],
       })
     );

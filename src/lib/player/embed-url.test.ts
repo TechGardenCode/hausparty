@@ -5,19 +5,15 @@ import type { Source } from "@/lib/types/database";
 function makeSource(overrides: Partial<Source> = {}): Source {
   return {
     id: "00000000-0000-0000-0000-000000000001",
-    set_id: "00000000-0000-0000-0000-000000000002",
+    setId: "00000000-0000-0000-0000-000000000002",
     platform: "youtube",
     url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
-    source_type: "official",
-    media_type: "video",
-    embed_supported: true,
-    is_active: true,
-    quality_score: null,
-    duration_seconds: null,
-    view_count: null,
-    created_at: "2026-01-01T00:00:00Z",
-    updated_at: "2026-01-01T00:00:00Z",
-    last_checked_at: null,
+    sourceType: "official",
+    mediaType: "video",
+    quality: null,
+    embedSupported: true,
+    isActive: true,
+    createdAt: new Date("2026-01-01T00:00:00Z"),
     ...overrides,
   };
 }
@@ -124,20 +120,20 @@ describe("getEmbedUrl", () => {
   });
 
   describe("guard conditions", () => {
-    it("returns null when embed_supported is false", () => {
-      const source = makeSource({ embed_supported: false });
+    it("returns null when embedSupported is false", () => {
+      const source = makeSource({ embedSupported: false });
       expect(getEmbedUrl(source)).toBeNull();
     });
 
-    it("returns null when is_active is false", () => {
-      const source = makeSource({ is_active: false });
+    it("returns null when isActive is false", () => {
+      const source = makeSource({ isActive: false });
       expect(getEmbedUrl(source)).toBeNull();
     });
 
-    it("returns null when both embed_supported and is_active are false", () => {
+    it("returns null when both embedSupported and isActive are false", () => {
       const source = makeSource({
-        embed_supported: false,
-        is_active: false,
+        embedSupported: false,
+        isActive: false,
       });
       expect(getEmbedUrl(source)).toBeNull();
     });

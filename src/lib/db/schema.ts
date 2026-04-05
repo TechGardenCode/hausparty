@@ -92,9 +92,25 @@ export const events = pgTable("events", {
   dateStart: date("date_start"),
   dateEnd: date("date_end"),
   location: text("location"),
+  venue: text("venue"),
   stages: text("stages").array().default([]),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
+
+export const eventArtists = pgTable(
+  "event_artists",
+  {
+    eventId: uuid("event_id")
+      .notNull()
+      .references(() => events.id, { onDelete: "cascade" }),
+    artistId: uuid("artist_id")
+      .notNull()
+      .references(() => artists.id, { onDelete: "cascade" }),
+    stage: text("stage"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.eventId, t.artistId] })]
+);
 
 export const sets = pgTable(
   "sets",
@@ -325,6 +341,7 @@ export const genresRelations = relations(genres, ({ many }) => ({
 export const artistsRelations = relations(artists, ({ many }) => ({
   artistGenres: many(artistGenres),
   setArtists: many(setArtists),
+  eventArtists: many(eventArtists),
 }));
 
 export const artistGenresRelations = relations(artistGenres, ({ one }) => ({
@@ -345,6 +362,12 @@ export const festivalGenresRelations = relations(festivalGenres, ({ one }) => ({
 export const eventsRelations = relations(events, ({ one, many }) => ({
   festival: one(festivals, { fields: [events.festivalId], references: [festivals.id] }),
   sets: many(sets),
+  eventArtists: many(eventArtists),
+}));
+
+export const eventArtistsRelations = relations(eventArtists, ({ one }) => ({
+  event: one(events, { fields: [eventArtists.eventId], references: [events.id] }),
+  artist: one(artists, { fields: [eventArtists.artistId], references: [artists.id] }),
 }));
 
 export const setsRelations = relations(sets, ({ one, many }) => ({
