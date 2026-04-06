@@ -16,7 +16,7 @@ import {
 import { eq, desc, ilike, inArray, count, isNull, and, sql } from "drizzle-orm";
 
 export async function getAdminStats() {
-  const [setsResult, artistsResult, pendingResult, noEventResult, draftResult] =
+  const [setsResult, artistsResult, pendingResult, draftResult] =
     await Promise.all([
       db.select({ count: count() }).from(sets),
       db.select({ count: count() }).from(artists),
@@ -24,10 +24,6 @@ export async function getAdminStats() {
         .select({ count: count() })
         .from(submissions)
         .where(eq(submissions.status, "pending")),
-      db
-        .select({ count: count() })
-        .from(sets)
-        .where(isNull(sets.eventId)),
       db
         .select({ count: count() })
         .from(sets)
@@ -48,7 +44,6 @@ export async function getAdminStats() {
     totalArtists: artistsResult[0]?.count ?? 0,
     pendingSubmissions: pendingResult[0]?.count ?? 0,
     setsWithoutGenres: Math.max(0, setsWithoutGenres),
-    setsWithoutEvents: noEventResult[0]?.count ?? 0,
     draftSets: draftResult[0]?.count ?? 0,
   };
 }

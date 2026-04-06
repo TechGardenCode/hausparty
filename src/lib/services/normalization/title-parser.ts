@@ -15,6 +15,8 @@ export interface ParsedTitle {
   artistName?: string;
   /** Additional artists detected from B2B/b2b patterns. */
   b2bArtists?: string[];
+  /** Supporting/lineup artists from comma-separated lists. */
+  supportingArtists?: string[];
   eventOrVenue?: string;
   year?: string;
   isFullSet: boolean;
@@ -88,11 +90,12 @@ export function parseYouTubeTitle(title: string): ParsedTitle {
 
       if (before && after) {
         const { primary, b2b } = extractB2B(before);
-        const eventOrVenue = cleanEventPart(after, year);
+        const { event, supporting } = extractSupportingArtists(after, year);
         return {
           artistName: cleanArtistPart(primary),
           b2bArtists: b2b.length > 0 ? b2b : undefined,
-          eventOrVenue: eventOrVenue || undefined,
+          supportingArtists: supporting.length > 0 ? supporting : undefined,
+          eventOrVenue: event || undefined,
           year,
           isFullSet,
           isLive,
@@ -137,6 +140,56 @@ function cleanArtistPart(artist: string): string {
   return artist
     .replace(/\s*\blive\b\s*/i, " ")
     .trim();
+}
+
+/**
+ * Extract supporting/lineup artists from the event portion of a title.
+ * Pattern: "RED ROCKS 2025 - Sub Focus, Dimension, Culture Shock, 1991"
+ * → event = "RED ROCKS", supporting = ["Sub Focus", "Dimension", "Culture Shock", "1991"]
+ */
+function extractSupportingArtists(
+  eventPortion: string,
+  year?: string
+): { event: string; supporting: string[] } {
+  // Look for a secondary dash separator in the event portion
+  const dashMatch = eventPortion.match(/\s+[-–—]\s+/);
+  if (!dashMatch || dashMatch.index === undefined) {
+    return { event: cleanEventPart(eventPortion, year), supporting: [] };
+  }
+
+  const beforeDash = eventPortion.slice(0, dashMatch.index).trim();
+  const afterDash = eventPortion.slice(dashMatch.index + dashMatch[0].length).trim();
+
+  // The part after the dash should contain commas to be a lineup list
+  // (otherwise it's just a subtitle like "Artist - Cercle Live")
+  if (!afterDash.includes(",")) {
+    return { event: cleanEventPart(eventPortion, year), supporting: [] };
+  }
+
+  // Split on commas and clean each entry
+  const candidates = afterDash
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean)
+    // Filter out non-artist tokens
+    .filter((s) => !isNonArtistToken(s, year));
+
+  // Need at least 2 comma-separated items to consider it a lineup
+  if (candidates.length < 2) {
+    return { event: cleanEventPart(eventPortion, year), supporting: [] };
+  }
+
+  return {
+    event: cleanEventPart(beforeDash, year),
+    supporting: candidates,
+  };
+}
+
+/** Check if a token is unlikely to be an artist name. */
+function isNonArtistToken(token: string, year?: string): boolean {
+  const lower = token.toLowerCase();
+  if (year && token === year) return false; // Years could be artist names (e.g., "1991")
+  return /^(full set|live set|dj set|live|official|hd|hq|4k|audio|video)$/i.test(lower);
 }
 
 /** Extract B2B artists from an artist string like "Artist1 b2b Artist2 b2b Artist3". */

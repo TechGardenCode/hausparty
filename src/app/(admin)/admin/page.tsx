@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Disc3, Users, Inbox, AlertTriangle, Calendar, Download, FileEdit, Search, Flag } from "lucide-react";
+import { Disc3, Users, Inbox, AlertTriangle, Download, FileEdit, Search, Flag } from "lucide-react";
 import { getAdminStats, getLastScraperRun, getPendingDiscoveryCount } from "@/lib/queries/admin";
 import { getOpenReportCount } from "@/lib/actions/reports";
 import { RefreshSearchButton } from "./refresh-search-button";
@@ -50,13 +50,6 @@ export default async function AdminDashboardPage() {
       icon: AlertTriangle,
       href: "/admin/sets",
       warning: stats.setsWithoutGenres > 0,
-    },
-    {
-      label: "Sets Without Events",
-      value: stats.setsWithoutEvents,
-      icon: Calendar,
-      href: "/admin/sets",
-      warning: stats.setsWithoutEvents > 0,
     },
     {
       label: "Pending Discovery",

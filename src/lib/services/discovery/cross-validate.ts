@@ -15,13 +15,13 @@ export interface ValidationContext {
 }
 
 export interface ValidationWarning {
-  type: "b2b_detected" | "artist_mismatch" | "event_mismatch";
+  type: "b2b_detected" | "supporting_artists" | "artist_mismatch" | "event_mismatch";
   message: string;
   severity: "info" | "warning";
 }
 
 export interface ValidationSuggestion {
-  type: "add_b2b_artist";
+  type: "add_b2b_artist" | "add_supporting_artist";
   artistName: string;
 }
 
@@ -51,6 +51,18 @@ export function crossValidate(
     });
     for (const artist of parsed.b2bArtists) {
       suggestions.push({ type: "add_b2b_artist", artistName: artist });
+    }
+  }
+
+  // Supporting artists detection
+  if (parsed.supportingArtists && parsed.supportingArtists.length > 0) {
+    warnings.push({
+      type: "supporting_artists",
+      message: `Supporting artists detected: ${parsed.supportingArtists.join(", ")}`,
+      severity: "info",
+    });
+    for (const artist of parsed.supportingArtists) {
+      suggestions.push({ type: "add_supporting_artist", artistName: artist });
     }
   }
 

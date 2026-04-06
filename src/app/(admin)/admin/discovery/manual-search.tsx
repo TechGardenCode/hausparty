@@ -496,11 +496,11 @@ function PreviewCard({
         </div>
       )}
 
-      {preview.validation.suggestions.filter((s) => s.type === "add_b2b_artist").length > 0 && (
+      {preview.validation.suggestions.filter((s) => s.type === "add_b2b_artist" || s.type === "add_supporting_artist").length > 0 && (
         <div className="mt-3 flex flex-col gap-1">
           <span className="text-xs font-medium text-text-secondary">Link additional artists:</span>
           {preview.validation.suggestions
-            .filter((s) => s.type === "add_b2b_artist")
+            .filter((s) => s.type === "add_b2b_artist" || s.type === "add_supporting_artist")
             .map((s) => (
               <label key={s.artistName} className="flex items-center gap-2 text-xs text-text-primary">
                 <input
@@ -510,8 +510,36 @@ function PreviewCard({
                   className="rounded"
                 />
                 {s.artistName}
+                {s.type === "add_b2b_artist" && (
+                  <span className="text-text-tertiary">(B2B)</span>
+                )}
               </label>
             ))}
+        </div>
+      )}
+
+      {!preview.isDuplicate && (
+        <div className="mt-3 flex items-center gap-2 text-xs">
+          <span className="text-text-tertiary">Match:</span>
+          <div className="h-2 w-24 overflow-hidden rounded-full bg-bg-primary">
+            <div
+              className={`h-full rounded-full transition-all ${
+                preview.validation.confidence >= 0.8
+                  ? "bg-accent-positive"
+                  : preview.validation.confidence >= 0.5
+                    ? "bg-accent-warm"
+                    : "bg-accent-negative"
+              }`}
+              style={{ width: `${preview.validation.confidence * 100}%` }}
+            />
+          </div>
+          <span className={`font-medium ${
+            preview.validation.confidence >= 0.8
+              ? "text-accent-positive"
+              : preview.validation.confidence >= 0.5
+                ? "text-accent-warm"
+                : "text-accent-negative"
+          }`}>{Math.round(preview.validation.confidence * 100)}%</span>
         </div>
       )}
     </div>

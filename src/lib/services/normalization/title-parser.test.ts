@@ -48,6 +48,40 @@ describe("parseYouTubeTitle", () => {
     });
   });
 
+  describe("supporting artists (comma-separated lineup)", () => {
+    it("extracts supporting artists after secondary dash", () => {
+      const result = parseYouTubeTitle(
+        "WORSHIP @ RED ROCKS 2025 - Sub Focus, Dimension, Culture Shock, 1991"
+      );
+      expect(result.artistName).toBe("WORSHIP");
+      expect(result.eventOrVenue).toBe("RED ROCKS");
+      expect(result.supportingArtists).toEqual([
+        "Sub Focus", "Dimension", "Culture Shock", "1991",
+      ]);
+      expect(result.year).toBe("2025");
+    });
+
+    it("extracts lineup from label showcase format", () => {
+      const result = parseYouTubeTitle(
+        "Drumcode @ Warehouse Project 2024 - Adam Beyer, Amelie Lens, Enrico Sangiuliano"
+      );
+      expect(result.artistName).toBe("Drumcode");
+      expect(result.supportingArtists).toEqual([
+        "Adam Beyer", "Amelie Lens", "Enrico Sangiuliano",
+      ]);
+    });
+
+    it("does NOT treat single-item dash split as supporting artists", () => {
+      const result = parseYouTubeTitle("Charlotte de Witte - Cercle Live");
+      expect(result.supportingArtists).toBeUndefined();
+    });
+
+    it("does NOT treat non-comma dash content as lineup", () => {
+      const result = parseYouTubeTitle("Carl Cox @ Space Ibiza - Closing Party");
+      expect(result.supportingArtists).toBeUndefined();
+    });
+  });
+
   describe("pipe separator pattern", () => {
     it("parses 'ARTIST | Venue 2024 | Full Set'", () => {
       const result = parseYouTubeTitle(
