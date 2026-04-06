@@ -12,6 +12,7 @@ import {
   events,
   genres,
   artists,
+  festivals,
 } from "@/lib/db/schema";
 import { processSubmission } from "@/lib/services/submission-processor";
 import { slugify } from "@/lib/utils";
@@ -204,6 +205,54 @@ export async function createArtist(name: string) {
     });
 
   return newArtist;
+}
+
+export async function updateArtist(
+  artistId: string,
+  data: {
+    name?: string;
+    slug?: string;
+    imageUrl?: string | null;
+    bio?: string | null;
+    aliases?: string[];
+  }
+) {
+  await requireAdmin();
+
+  const updateData: Record<string, unknown> = {};
+  if (data.name !== undefined) updateData.name = data.name;
+  if (data.slug !== undefined) updateData.slug = data.slug;
+  if (data.imageUrl !== undefined) updateData.imageUrl = data.imageUrl;
+  if (data.bio !== undefined) updateData.bio = data.bio;
+  if (data.aliases !== undefined) updateData.aliases = data.aliases;
+
+  await db.update(artists).set(updateData).where(eq(artists.id, artistId));
+
+  revalidatePath("/admin/artists");
+  revalidatePath(`/admin/artists/${artistId}/edit`);
+}
+
+export async function updateFestival(
+  festivalId: string,
+  data: {
+    name?: string;
+    slug?: string;
+    imageUrl?: string | null;
+    description?: string | null;
+  }
+) {
+  await requireAdmin();
+
+  const updateData: Record<string, unknown> = {};
+  if (data.name !== undefined) updateData.name = data.name;
+  if (data.slug !== undefined) updateData.slug = data.slug;
+  if (data.imageUrl !== undefined) updateData.imageUrl = data.imageUrl;
+  if (data.description !== undefined) updateData.description = data.description;
+
+  await db.update(festivals).set(updateData).where(eq(festivals.id, festivalId));
+
+  revalidatePath("/admin/festivals");
+  revalidatePath(`/admin/festivals/${festivalId}/edit`);
 }
 
 export async function bulkAssignGenre(setIds: string[], genreId: string) {

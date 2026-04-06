@@ -371,12 +371,44 @@ export async function getArtistWithSets(artistId: string) {
     name: data.name,
     slug: data.slug,
     aliases: data.aliases ?? [],
+    imageUrl: data.imageUrl,
+    bio: data.bio,
     sets: (data.setArtists ?? [])
       .map((sa) => sa.set)
       .filter((s): s is NonNullable<typeof s> => s !== null)
       .map((s) => ({ id: s.id, title: s.title, slug: s.slug })),
     genres: (data.artistGenres ?? [])
       .map((ag) => ag.genre)
+      .filter((g): g is NonNullable<typeof g> => g !== null)
+      .map((g) => ({ id: g.id, name: g.name, slug: g.slug })),
+  };
+}
+
+export async function getFestivalForEdit(festivalId: string) {
+  const data = await db.query.festivals.findFirst({
+    where: eq(festivals.id, festivalId),
+    with: {
+      events: true,
+      festivalGenres: { with: { genre: true } },
+    },
+  });
+
+  if (!data) return null;
+
+  return {
+    id: data.id,
+    name: data.name,
+    slug: data.slug,
+    description: data.description,
+    imageUrl: data.imageUrl,
+    events: (data.events ?? []).map((e) => ({
+      id: e.id,
+      name: e.name,
+      slug: e.slug,
+      dateStart: e.dateStart,
+    })),
+    genres: (data.festivalGenres ?? [])
+      .map((fg) => fg.genre)
       .filter((g): g is NonNullable<typeof g> => g !== null)
       .map((g) => ({ id: g.id, name: g.name, slug: g.slug })),
   };

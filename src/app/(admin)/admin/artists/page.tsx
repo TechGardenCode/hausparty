@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, Pencil } from "lucide-react";
 import { getAdminArtists } from "@/lib/queries/admin";
 import type { Metadata } from "next";
 
@@ -78,8 +78,17 @@ export default async function AdminArtistsPage({ searchParams }: Props) {
                 <td className="py-3 pr-4 text-text-secondary">
                   {artist.setCount}
                 </td>
-                <td className="py-3 text-text-secondary">
+                <td className="py-3 pr-4 text-text-secondary">
                   {artist.genres.map((g) => g.name).join(", ") || "—"}
+                </td>
+                <td className="py-3">
+                  <Link
+                    href={`/admin/artists/${artist.id}/edit`}
+                    className="rounded p-1 text-text-tertiary hover:text-accent-primary"
+                    title="Edit"
+                  >
+                    <Pencil className="h-3.5 w-3.5" />
+                  </Link>
                 </td>
               </tr>
             ))}
