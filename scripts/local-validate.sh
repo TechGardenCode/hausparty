@@ -47,7 +47,6 @@ check_cmd() {
 }
 
 check_cmd bws
-check_cmd kubectl
 check_cmd jq
 if [[ "$MODE" == "docker" ]]; then
   check_cmd docker
@@ -82,28 +81,9 @@ ADMIN_API_KEY="$(bws secret get "$BWS_ADMIN_API_KEY" | jq -r .value)"
 EDMTRAIN_API_KEY="$(bws secret get "$BWS_EDMTRAIN_API_KEY" | jq -r .value)"
 echo "Secrets fetched."
 
-# ─── Port-forward dev cluster database ─────────────────────────────────────
-PF_PID=""
-cleanup() {
-  if [[ -n "$PF_PID" ]]; then
-    kill "$PF_PID" 2>/dev/null || true
-    wait "$PF_PID" 2>/dev/null || true
-    echo "Port-forward stopped."
-  fi
-}
-trap cleanup EXIT
-
-echo "Starting port-forward to hausparty-db-rw..."
-kubectl --context admin@talos-dev port-forward -n hausparty svc/hausparty-db-rw 5432:5432 &>/dev/null &
-PF_PID=$!
-sleep 2
-
-# Verify port-forward is running
-if ! kill -0 "$PF_PID" 2>/dev/null; then
-  echo "ERROR: Port-forward failed to start. Check kubectl access to 1276-dev cluster." >&2
-  exit 1
-fi
-echo "Port-forward active (PID $PF_PID)."
+# ─── Database hostname ─────────────────────────────────────────────────────
+# Direct DNS access via Technitium — no port-forwarding needed
+PG_HOSTNAME="db.hausparty.dev.techgarden.gg"
 
 # ─── Keycloak reminder ────────────────────────────────────────────────────
 echo ""
@@ -118,14 +98,13 @@ if [[ "$MODE" == "docker" ]]; then
 
   echo "Running container on http://localhost:3000 ..."
   docker run --rm -p 3000:3000 \
-    --add-host=host.docker.internal:host-gateway \
     -e AUTH_KEYCLOAK_ID="$AUTH_KEYCLOAK_ID" \
     -e AUTH_KEYCLOAK_SECRET="$AUTH_KEYCLOAK_SECRET" \
     -e AUTH_KEYCLOAK_ISSUER="$AUTH_KEYCLOAK_ISSUER" \
     -e AUTH_URL="$AUTH_URL" \
     -e AUTH_TRUST_HOST="$AUTH_TRUST_HOST" \
     -e AUTH_SECRET="$AUTH_SECRET" \
-    -e PG_HOSTNAME=host.docker.internal \
+    -e PG_HOSTNAME="$PG_HOSTNAME" \
     -e PG_PORT="$PG_PORT" \
     -e PG_DB="$PG_DB" \
     -e PG_USER="$PG_USER" \
@@ -145,7 +124,7 @@ AUTH_KEYCLOAK_ISSUER=$AUTH_KEYCLOAK_ISSUER
 AUTH_URL=$AUTH_URL
 AUTH_TRUST_HOST=$AUTH_TRUST_HOST
 AUTH_SECRET=$AUTH_SECRET
-PG_HOSTNAME=localhost
+PG_HOSTNAME=$PG_HOSTNAME
 PG_PORT=$PG_PORT
 PG_DB=$PG_DB
 PG_USER=$PG_USER
