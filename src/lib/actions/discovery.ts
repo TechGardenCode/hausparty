@@ -12,10 +12,12 @@ import { classifySource } from "@/lib/services/normalization/source-classifier";
 import { crossValidate } from "@/lib/services/discovery/cross-validate";
 import { findOrCreateArtist } from "@/lib/services/artist-matching";
 import { normalizeArtistName } from "@/lib/services/normalization/artist-names";
+import { resolveQuery, type ResolvedQuery } from "@/lib/services/discovery/resolve-query";
+import { slugify } from "@/lib/utils";
 import { db } from "@/lib/db";
-import { artists, sources } from "@/lib/db/schema";
+import { artists, events, sources, eventArtists } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
-import type { CrossValidationResult, ValidationSuggestion } from "@/lib/services/discovery/cross-validate";
+import type { CrossValidationResult } from "@/lib/services/discovery/cross-validate";
 
 export interface PreviewResult {
   url: string;
@@ -158,4 +160,85 @@ export async function createSetFromDiscovery(data: {
   revalidatePath("/admin");
 
   return { setId: result.setId, action: result.action, status: result.status };
+}
+
+/**
+ * Resolve a freeform query into structured metadata.
+ */
+export async function resolveDiscoveryQuery(input: string): Promise<ResolvedQuery> {
+  await requireAdmin();
+  return resolveQuery(input);
+}
+
+/**
+ * Create an artist inline from the manual discovery flow.
+ */
+export async function createDiscoveryArtist(name: string): Promise<{ id: string; name: string }> {
+  await requireAdmin();
+  const normalized = normalizeArtistName(name);
+  const { artistId } = await findOrCreateArtist(normalized);
+
+  const [artist] = await db
+    .select({ name: artists.name })
+    .from(artists)
+    .where(eq(artists.id, artistId))
+    .limit(1);
+
+  revalidatePath("/admin/discovery");
+  return { id: artistId, name: artist?.name ?? normalized };
+}
+
+/**
+ * Create an event inline from the manual discovery flow.
+ * Optionally links to a festival and creates an event_artists association.
+ */
+export async function createDiscoveryEvent(data: {
+  name: string;
+  festivalId?: string;
+  dateStart?: string;
+  venue?: string;
+  artistId?: string;
+}): Promise<{ id: string; name: string }> {
+  await requireAdmin();
+
+  const slug = slugify(data.name);
+
+  let eventId: string;
+  try {
+    const [newEvent] = await db
+      .insert(events)
+      .values({
+        name: data.name,
+        slug,
+        festivalId: data.festivalId ?? null,
+        dateStart: data.dateStart ?? null,
+        venue: data.venue ?? null,
+      })
+      .returning({ id: events.id });
+    eventId = newEvent.id;
+  } catch {
+    const fallbackSlug = `${slug}-${Date.now().toString(36)}`;
+    const [retryEvent] = await db
+      .insert(events)
+      .values({
+        name: data.name,
+        slug: fallbackSlug,
+        festivalId: data.festivalId ?? null,
+        dateStart: data.dateStart ?? null,
+        venue: data.venue ?? null,
+      })
+      .returning({ id: events.id });
+    eventId = retryEvent.id;
+  }
+
+  // If an artist was provided, link them to the event
+  if (data.artistId) {
+    await db
+      .insert(eventArtists)
+      .values({ eventId, artistId: data.artistId })
+      .onConflictDoNothing();
+  }
+
+  revalidatePath("/admin/discovery");
+  return { id: eventId, name: data.name };
 }

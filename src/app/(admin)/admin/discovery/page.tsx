@@ -1,6 +1,7 @@
 import { getDiscoveryQueue } from "@/lib/queries/admin";
 import { buildSearchUrls } from "@/lib/services/discovery/search-urls";
 import { DiscoveryQueue } from "./discovery-queue";
+import { ManualSearch } from "./manual-search";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -33,11 +34,14 @@ export default async function AdminDiscoveryPage({ searchParams }: Props) {
   }));
 
   return (
-    <DiscoveryQueue
-      items={itemsWithUrls}
-      total={total}
-      currentPage={currentPage}
-      totalPages={totalPages}
-    />
+    <div className="flex flex-col gap-6">
+      <ManualSearch />
+      <DiscoveryQueue
+        items={itemsWithUrls}
+        total={total}
+        currentPage={currentPage}
+        totalPages={totalPages}
+      />
+    </div>
   );
 }
