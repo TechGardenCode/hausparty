@@ -94,7 +94,7 @@ export async function updateSet(
   const updateData: Record<string, unknown> = {};
   if (data.title !== undefined) updateData.title = data.title;
   if (data.slug !== undefined) updateData.slug = data.slug;
-  if (data.performed_at !== undefined) updateData.performedAt = data.performed_at;
+  if (data.performed_at !== undefined) updateData.performedAt = data.performed_at ? new Date(data.performed_at) : null;
   if (data.duration_seconds !== undefined) updateData.durationSeconds = data.duration_seconds;
   if (data.stage !== undefined) updateData.stage = data.stage;
   if (data.event_id !== undefined) updateData.eventId = data.event_id;
