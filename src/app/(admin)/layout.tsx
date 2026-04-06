@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { LayoutDashboard, Inbox, Disc3, Users, Shield, Download, Search, HeartPulse } from "lucide-react";
+import { LayoutDashboard, Inbox, Disc3, Users, Shield, Download, Search, HeartPulse, Flag } from "lucide-react";
 import { auth } from "@/lib/auth";
 import { isAdmin } from "@/lib/auth-helpers";
 
@@ -12,6 +12,7 @@ const navItems = [
   { href: "/admin/scrapers", label: "Scrapers", icon: Download },
   { href: "/admin/discovery", label: "Discovery", icon: Search },
   { href: "/admin/healing", label: "Healing", icon: HeartPulse },
+  { href: "/admin/reports", label: "Reports", icon: Flag },
 ];
 
 export default async function AdminLayout({

@@ -13,6 +13,7 @@ import { CollectionPicker } from "@/components/collection-picker";
 import { ShareButton } from "@/components/share-button";
 import { GenreChip } from "@/components/genre-chip";
 import { SetRow } from "@/components/set-row";
+import { ReportButton } from "@/components/report-button";
 import { SectionHeader } from "@/components/section-header";
 import type { Source } from "@/lib/types/database";
 import type { Metadata } from "next";
@@ -75,7 +76,7 @@ export default async function SetDetailPage({ params }: Props) {
   const artistNames = set.artists.map((a: { name: string }) => a.name).join(", ");
 
   return (
-    <div className="flex flex-col gap-8">
+    <div className="flex flex-col gap-5">
       {/* Player */}
       <SourceSwitcher
         sources={set.sources as Source[]}
@@ -86,9 +87,9 @@ export default async function SetDetailPage({ params }: Props) {
       />
 
       {/* Header */}
-      <div className="flex flex-col gap-4">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div className="flex flex-col gap-1">
+      <div className="flex flex-col gap-2">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="flex flex-col gap-0.5">
             <h1 className="text-2xl font-bold">
               {set.artists.map((a: { slug: string; name: string }, i: number, arr: { slug: string; name: string }[]) => (
                 <span key={a.slug}>
@@ -109,7 +110,7 @@ export default async function SetDetailPage({ params }: Props) {
                     ? `/festivals/${set.festival.slug}`
                     : "#"
                 }
-                className="text-text-secondary hover:text-accent-primary transition-colors"
+                className="text-sm text-text-secondary hover:text-accent-primary transition-colors"
               >
                 {set.event.name}
               </Link>
@@ -125,14 +126,15 @@ export default async function SetDetailPage({ params }: Props) {
               text={`${artistNames} live at ${set.event?.name || ""}. Listen on hausparty.`}
               url={`https://hausparty.app/sets/${slug}`}
             />
+            <ReportButton setId={set.id} isAuthenticated={!!user} />
           </div>
         </div>
 
-        {/* Meta row */}
-        <div className="flex flex-wrap items-center gap-4 text-sm text-text-secondary">
+        {/* Meta + genres */}
+        <div className="flex flex-wrap items-center gap-3 text-sm text-text-tertiary">
           {set.performed_at && (
             <span className="flex items-center gap-1">
-              <Calendar className="h-4 w-4" />
+              <Calendar className="h-3.5 w-3.5" />
               {new Date(set.performed_at).toLocaleDateString("en-US", {
                 year: "numeric",
                 month: "short",
@@ -142,26 +144,26 @@ export default async function SetDetailPage({ params }: Props) {
           )}
           {set.stage && (
             <span className="flex items-center gap-1">
-              <MapPin className="h-4 w-4" />
+              <MapPin className="h-3.5 w-3.5" />
               {set.stage}
             </span>
           )}
           {set.duration_seconds && (
             <span className="flex items-center gap-1">
-              <Clock className="h-4 w-4" />
+              <Clock className="h-3.5 w-3.5" />
               {formatDuration(set.duration_seconds)}
             </span>
           )}
+          {set.genres.length > 0 && (
+            <>
+              <span className="text-text-tertiary/30">·</span>
+              {set.genres.map((g: { id: string; name: string; slug: string }) => (
+                <GenreChip key={g.id} name={g.name} slug={g.slug} />
+              ))}
+            </>
+          )}
         </div>
 
-        {/* Genre chips */}
-        {set.genres.length > 0 && (
-          <div className="flex flex-wrap gap-2">
-            {set.genres.map((g: { id: string; name: string; slug: string }) => (
-              <GenreChip key={g.id} name={g.name} slug={g.slug} />
-            ))}
-          </div>
-        )}
       </div>
 
       {/* Tracklist */}

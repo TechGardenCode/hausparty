@@ -26,6 +26,11 @@ export const submissionStatusEnum = pgEnum("submission_status", ["pending", "app
 export const userRoleEnum = pgEnum("user_role", ["viewer", "artist", "festival_manager", "site_admin"]);
 export const setStatusEnum = pgEnum("set_status", ["draft", "published"]);
 export const scraperStatusEnum = pgEnum("scraper_status", ["running", "completed", "failed"]);
+export const reportTypeEnum = pgEnum("report_type", [
+  "wrong_artist", "missing_artist", "wrong_event", "wrong_title",
+  "broken_source", "duplicate", "other",
+]);
+export const reportStatusEnum = pgEnum("report_status", ["open", "resolved", "dismissed"]);
 
 // ============================================================
 // CONTENT TABLES
@@ -329,6 +334,29 @@ export const scraperEntityMap = pgTable(
 );
 
 // ============================================================
+// USER REPORTS
+// ============================================================
+
+export const reports = pgTable(
+  "reports",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id").notNull(),
+    setId: uuid("set_id").references(() => sets.id, { onDelete: "cascade" }),
+    artistId: uuid("artist_id").references(() => artists.id, { onDelete: "cascade" }),
+    reportType: reportTypeEnum("report_type").notNull(),
+    description: text("description"),
+    status: reportStatusEnum("status").notNull().default("open"),
+    resolvedAt: timestamp("resolved_at"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (t) => [
+    index("idx_reports_status").on(t.status),
+    index("idx_reports_user").on(t.userId),
+  ]
+);
+
+// ============================================================
 // RELATIONS
 // ============================================================
 
@@ -411,4 +439,9 @@ export const savedSetsRelations = relations(savedSets, ({ one }) => ({
 
 export const submissionsRelations = relations(submissions, ({ one }) => ({
   matchedSet: one(sets, { fields: [submissions.matchedSetId], references: [sets.id] }),
+}));
+
+export const reportsRelations = relations(reports, ({ one }) => ({
+  set: one(sets, { fields: [reports.setId], references: [sets.id] }),
+  artist: one(artists, { fields: [reports.artistId], references: [artists.id] }),
 }));

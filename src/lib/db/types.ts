@@ -16,6 +16,7 @@ import type {
   scraperRuns,
   scraperEntityMap,
   userSettings,
+  reports,
 } from "./schema";
 
 // Row types inferred from Drizzle schema
@@ -35,6 +36,7 @@ export type ScraperRun = InferSelectModel<typeof scraperRuns>;
 export type ScraperEntityMap = InferSelectModel<typeof scraperEntityMap>;
 export type UserSettings = InferSelectModel<typeof userSettings>;
 export type EventArtist = InferSelectModel<typeof eventArtists>;
+export type Report = InferSelectModel<typeof reports>;
 
 // Enum types
 export type Platform = "youtube" | "soundcloud";
@@ -45,6 +47,8 @@ export type SubmissionStatus = "pending" | "approved" | "rejected";
 export type UserRole = "viewer" | "artist" | "festival_manager" | "site_admin";
 export type SetStatus = "draft" | "published";
 export type ScraperStatus = "running" | "completed" | "failed";
+export type ReportType = "wrong_artist" | "missing_artist" | "wrong_event" | "wrong_title" | "broken_source" | "duplicate" | "other";
+export type ReportStatus = "open" | "resolved" | "dismissed";
 
 // Joined query result shapes
 export interface SetWithDetails extends DjSet {
