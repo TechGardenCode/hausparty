@@ -352,11 +352,7 @@ export function ManualSearch() {
                     disabled={isPending || phase.preview.isDuplicate}
                     className="flex items-center gap-1.5 rounded bg-accent-primary px-3 py-1.5 text-sm font-medium text-white disabled:opacity-50"
                   >
-                    {phase.step === "creating" ? (
-                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                    ) : (
-                      <CheckCircle className="h-3.5 w-3.5" />
-                    )}
+                    <CheckCircle className="h-3.5 w-3.5" />
                     Confirm
                   </button>
                   <button
