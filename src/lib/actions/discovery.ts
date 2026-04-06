@@ -3,23 +3,128 @@
 import { revalidatePath } from "next/cache";
 import { requireAdmin } from "@/lib/auth-helpers";
 import { assembleSetFromUrl } from "@/lib/services/discovery/assemble-set";
+import { detectPlatform } from "@/lib/services/submission-processor";
+import { normalizeSourceUrl } from "@/lib/services/url-normalization";
+import { fetchYouTubeMetadata } from "@/lib/services/youtube";
+import { fetchSoundCloudMetadata } from "@/lib/services/soundcloud";
+import { parseYouTubeTitle } from "@/lib/services/normalization/title-parser";
+import { classifySource } from "@/lib/services/normalization/source-classifier";
+import { crossValidate } from "@/lib/services/discovery/cross-validate";
+import { findOrCreateArtist } from "@/lib/services/artist-matching";
+import { normalizeArtistName } from "@/lib/services/normalization/artist-names";
 import { db } from "@/lib/db";
-import { artists } from "@/lib/db/schema";
+import { artists, sources } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
+import type { CrossValidationResult, ValidationSuggestion } from "@/lib/services/discovery/cross-validate";
+
+export interface PreviewResult {
+  url: string;
+  normalizedUrl: string;
+  platform: string;
+  isDuplicate: boolean;
+  title: string;
+  channelName: string;
+  thumbnailUrl: string | null;
+  parsedArtist: string | null;
+  parsedEvent: string | null;
+  parsedYear: string | null;
+  isFullSet: boolean;
+  sourceType: "official" | "artist" | "fan";
+  validation: CrossValidationResult;
+}
 
 /**
- * Create a draft set from a pasted URL with pre-resolved metadata.
- * Called from the discovery queue UI when admin pastes a YouTube/SoundCloud URL.
+ * Preview a URL before creating a set. Fetches metadata, parses the title,
+ * and cross-validates against the discovery queue context.
+ */
+export async function previewSetFromUrl(data: {
+  url: string;
+  artistId: string;
+  artistName: string;
+  eventName?: string;
+  festivalName?: string;
+}): Promise<PreviewResult> {
+  await requireAdmin();
+
+  const platform = detectPlatform(data.url);
+  if (!platform) {
+    throw new Error("Unsupported platform. Only YouTube and SoundCloud URLs are supported.");
+  }
+
+  const normalizedUrl = normalizeSourceUrl(data.url);
+
+  // Check for duplicates
+  const [existing] = await db
+    .select({ id: sources.id })
+    .from(sources)
+    .where(eq(sources.url, normalizedUrl))
+    .limit(1);
+
+  // Fetch OEmbed metadata
+  let title = "Unknown";
+  let channelName = "Unknown";
+  let thumbnailUrl: string | null = null;
+
+  try {
+    const metadata = platform === "youtube"
+      ? await fetchYouTubeMetadata(normalizedUrl)
+      : await fetchSoundCloudMetadata(normalizedUrl);
+    if (metadata) {
+      title = metadata.title;
+      channelName = metadata.author;
+      thumbnailUrl = metadata.thumbnailUrl;
+    }
+  } catch {
+    // Non-fatal
+  }
+
+  // Parse title
+  const parsed = parseYouTubeTitle(title);
+
+  // Classify source
+  const sourceType = classifySource({
+    channelName,
+    artistName: data.artistName,
+    eventName: data.eventName,
+    festivalName: data.festivalName,
+  });
+
+  // Cross-validate
+  const validation = crossValidate(parsed, {
+    artistName: data.artistName,
+    eventName: data.eventName,
+    festivalName: data.festivalName,
+  });
+
+  return {
+    url: data.url,
+    normalizedUrl,
+    platform,
+    isDuplicate: !!existing,
+    title,
+    channelName,
+    thumbnailUrl,
+    parsedArtist: parsed.artistName ?? null,
+    parsedEvent: parsed.eventOrVenue ?? null,
+    parsedYear: parsed.year ?? null,
+    isFullSet: parsed.isFullSet,
+    sourceType,
+    validation,
+  };
+}
+
+/**
+ * Create a set from a previewed URL, optionally applying B2B suggestions.
  */
 export async function createSetFromDiscovery(data: {
   url: string;
   artistId: string;
   eventId?: string;
   performedAt?: string;
+  b2bArtistNames?: string[];
 }): Promise<{ setId: string; action: string; status: string }> {
   await requireAdmin();
 
-  // Look up artist name for the assembler
   const [artist] = await db
     .select({ name: artists.name })
     .from(artists)
@@ -30,12 +135,22 @@ export async function createSetFromDiscovery(data: {
     throw new Error("Artist not found");
   }
 
+  // Resolve B2B artists if provided
+  const b2bArtistIds: string[] = [];
+  if (data.b2bArtistNames && data.b2bArtistNames.length > 0) {
+    for (const name of data.b2bArtistNames) {
+      const { artistId } = await findOrCreateArtist(normalizeArtistName(name));
+      b2bArtistIds.push(artistId);
+    }
+  }
+
   const result = await assembleSetFromUrl({
     url: data.url,
     artistId: data.artistId,
     artistName: artist.name,
     eventId: data.eventId,
     performedAt: data.performedAt ? new Date(data.performedAt) : undefined,
+    b2bArtistIds,
   });
 
   revalidatePath("/admin/discovery");

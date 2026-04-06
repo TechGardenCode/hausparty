@@ -24,6 +24,30 @@ describe("parseYouTubeTitle", () => {
     });
   });
 
+  describe("B2B detection", () => {
+    it("detects B2B artists", () => {
+      const result = parseYouTubeTitle(
+        "Martin Garrix b2b Tiësto @ Ultra Music Festival 2026"
+      );
+      expect(result.artistName).toBe("Martin Garrix");
+      expect(result.b2bArtists).toEqual(["Tiësto"]);
+      expect(result.eventOrVenue).toBe("Ultra Music Festival");
+    });
+
+    it("detects B3B (three artists)", () => {
+      const result = parseYouTubeTitle(
+        "Fisher B2B Chris Lake B2B Lee Foss @ EDC 2025"
+      );
+      expect(result.artistName).toBe("Fisher");
+      expect(result.b2bArtists).toEqual(["Chris Lake", "Lee Foss"]);
+    });
+
+    it("returns no b2bArtists for solo sets", () => {
+      const result = parseYouTubeTitle("Boris Brejcha @ Tomorrowland 2023");
+      expect(result.b2bArtists).toBeUndefined();
+    });
+  });
+
   describe("pipe separator pattern", () => {
     it("parses 'ARTIST | Venue 2024 | Full Set'", () => {
       const result = parseYouTubeTitle(

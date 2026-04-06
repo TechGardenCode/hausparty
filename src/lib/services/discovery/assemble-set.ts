@@ -18,6 +18,8 @@ export interface AssembleOptions {
   artistName: string;
   eventId?: string;
   performedAt?: Date;
+  /** Additional artist IDs for B2B sets. */
+  b2bArtistIds?: string[];
 }
 
 export interface AssembleResult {
@@ -98,17 +100,29 @@ export async function assembleSetFromUrl(
     performedAt,
   });
 
-  // Link artist
+  // Link primary artist
   await db
     .insert(setArtists)
     .values({ setId, artistId, position: 0 })
     .onConflictDoNothing();
 
+  // Link B2B artists
+  const allArtistIds = [artistId];
+  if (opts.b2bArtistIds) {
+    for (let i = 0; i < opts.b2bArtistIds.length; i++) {
+      await db
+        .insert(setArtists)
+        .values({ setId, artistId: opts.b2bArtistIds[i], position: i + 1 })
+        .onConflictDoNothing();
+      allArtistIds.push(opts.b2bArtistIds[i]);
+    }
+  }
+
   // Create source
   await createSource(setId, platform, normalizedUrl, sourceType);
 
-  // 8. Infer genres
-  await inferGenresForSet(setId, [artistId]);
+  // 8. Infer genres from all artists
+  await inferGenresForSet(setId, allArtistIds);
 
   // 9. Completeness scoring (may auto-publish)
   const finalStatus = await evaluateAndRefreshIfPublished(setId);

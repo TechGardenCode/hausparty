@@ -13,6 +13,8 @@
 
 export interface ParsedTitle {
   artistName?: string;
+  /** Additional artists detected from B2B/b2b patterns. */
+  b2bArtists?: string[];
   eventOrVenue?: string;
   year?: string;
   isFullSet: boolean;
@@ -85,10 +87,11 @@ export function parseYouTubeTitle(title: string): ParsedTitle {
       const after = working.slice(match.index + match[0].length).trim();
 
       if (before && after) {
-        // "Artist @ Event 2024" → artist=before, event=after (without year)
+        const { primary, b2b } = extractB2B(before);
         const eventOrVenue = cleanEventPart(after, year);
         return {
-          artistName: cleanArtistPart(before),
+          artistName: cleanArtistPart(primary),
+          b2bArtists: b2b.length > 0 ? b2b : undefined,
           eventOrVenue: eventOrVenue || undefined,
           year,
           isFullSet,
@@ -134,4 +137,16 @@ function cleanArtistPart(artist: string): string {
   return artist
     .replace(/\s*\blive\b\s*/i, " ")
     .trim();
+}
+
+/** Extract B2B artists from an artist string like "Artist1 b2b Artist2 b2b Artist3". */
+function extractB2B(artistPart: string): { primary: string; b2b: string[] } {
+  const parts = artistPart.split(/\s+[bB]2[bB]\s+/);
+  if (parts.length <= 1) {
+    return { primary: artistPart, b2b: [] };
+  }
+  return {
+    primary: parts[0].trim(),
+    b2b: parts.slice(1).map((p) => p.trim()).filter(Boolean),
+  };
 }
