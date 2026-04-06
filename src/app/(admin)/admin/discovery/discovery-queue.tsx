@@ -271,11 +271,7 @@ function DiscoveryRow({
               disabled={isPending || state.data.isDuplicate}
               className="flex items-center gap-1.5 rounded bg-accent-primary px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-accent-primary/90 disabled:opacity-50"
             >
-              {state.phase === "creating" ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              ) : (
-                <CheckCircle className="h-3.5 w-3.5" />
-              )}
+              <CheckCircle className="h-3.5 w-3.5" />
               Confirm
             </button>
             <button
