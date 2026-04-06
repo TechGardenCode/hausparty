@@ -46,4 +46,4 @@ jobs:
           token: ${{ secrets.HOMELAB_PAT }}
           repository: techgardencode/homelab
           event-type: update-image
-          client-payload: '{"app": "hausparty", "tag": "${{ github.sha }}"}'
+          client-payload: '{"app": "hausparty", "tag": "${{ github.sha }}", "env": "dev"}'

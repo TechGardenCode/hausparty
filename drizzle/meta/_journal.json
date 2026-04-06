@@ -36,6 +36,20 @@
       "when": 1775435575302,
       "tag": "0004_outgoing_agent_zero",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1775523132000,
+      "tag": "0005_prod-seed",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1775523200000,
+      "tag": "0006_seed-images",
+      "breakpoints": true
     }
   ]
 }
