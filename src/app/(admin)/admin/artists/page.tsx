@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { AlertTriangle, Pencil } from "lucide-react";
 import { getAdminArtists } from "@/lib/queries/admin";
+import { AdminPagination } from "@/components/admin-pagination";
+import { ArtistAdminSearch } from "./artist-admin-search";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -8,19 +10,22 @@ export const metadata: Metadata = {
 };
 
 interface Props {
-  searchParams: Promise<{ page?: string }>;
+  searchParams: Promise<{ page?: string; q?: string }>;
 }
 
 const PAGE_SIZE = 25;
 
 export default async function AdminArtistsPage({ searchParams }: Props) {
-  const { page } = await searchParams;
+  const { page, q } = await searchParams;
   const currentPage = Math.max(1, parseInt(page || "1", 10) || 1);
   const { artists, total, pageSize } = await getAdminArtists(
     currentPage,
-    PAGE_SIZE
+    PAGE_SIZE,
+    q || undefined
   );
   const totalPages = Math.ceil(total / pageSize);
+  const extraParams: Record<string, string> = {};
+  if (q) extraParams.q = q;
 
   return (
     <div className="flex flex-col gap-6">
@@ -37,6 +42,8 @@ export default async function AdminArtistsPage({ searchParams }: Props) {
         </div>
       </div>
 
+      <ArtistAdminSearch initialQuery={q ?? ""} />
+
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
@@ -44,7 +51,8 @@ export default async function AdminArtistsPage({ searchParams }: Props) {
               <th className="pb-3 pr-4 font-medium">Name</th>
               <th className="pb-3 pr-4 font-medium">Slug</th>
               <th className="pb-3 pr-4 font-medium">Sets</th>
-              <th className="pb-3 font-medium">Genres</th>
+              <th className="pb-3 pr-4 font-medium">Genres</th>
+              <th className="pb-3 font-medium"></th>
             </tr>
           </thead>
           <tbody>
@@ -96,30 +104,12 @@ export default async function AdminArtistsPage({ searchParams }: Props) {
         </table>
       </div>
 
-      {/* Pagination */}
-      {totalPages > 1 && (
-        <div className="flex items-center justify-center gap-3">
-          {currentPage > 1 && (
-            <Link
-              href={`/admin/artists?page=${currentPage - 1}`}
-              className="rounded border border-border-subtle px-3 py-1.5 text-sm text-text-secondary transition-colors hover:bg-bg-surface-hover hover:text-text-primary"
-            >
-              Previous
-            </Link>
-          )}
-          <span className="text-sm text-text-tertiary">
-            Page {currentPage} of {totalPages}
-          </span>
-          {currentPage < totalPages && (
-            <Link
-              href={`/admin/artists?page=${currentPage + 1}`}
-              className="rounded border border-border-subtle px-3 py-1.5 text-sm text-text-secondary transition-colors hover:bg-bg-surface-hover hover:text-text-primary"
-            >
-              Next
-            </Link>
-          )}
-        </div>
-      )}
+      <AdminPagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        basePath="/admin/artists"
+        extraParams={extraParams}
+      />
     </div>
   );
 }

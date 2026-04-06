@@ -22,6 +22,40 @@ export async function getAllFestivals() {
   }));
 }
 
+/**
+ * Get all festivals with set counts for the browse page.
+ */
+export async function getBrowseFestivals() {
+  const data = await db.query.festivals.findMany({
+    with: {
+      festivalGenres: { with: { genre: true } },
+      events: {
+        with: { sets: true },
+      },
+    },
+    orderBy: [festivals.name],
+  });
+
+  return data.map((f) => {
+    const setCount = (f.events ?? []).reduce(
+      (sum, e) => sum + (e.sets?.filter((s) => s.status === "published").length ?? 0),
+      0
+    );
+    return {
+      id: f.id,
+      name: f.name,
+      slug: f.slug,
+      description: f.description,
+      imageUrl: f.imageUrl,
+      setCount,
+      genres: (f.festivalGenres || [])
+        .map((fg) => fg.genre)
+        .filter((g): g is NonNullable<typeof g> => g !== null)
+        .slice(0, 3),
+    };
+  });
+}
+
 export async function getFestivalBySlug(slug: string) {
   const data = await db.query.festivals.findFirst({
     where: eq(festivals.slug, slug),

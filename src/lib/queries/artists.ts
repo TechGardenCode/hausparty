@@ -1,6 +1,6 @@
 import { db } from "@/lib/db";
-import { artists, setArtists } from "@/lib/db/schema";
-import { eq, count } from "drizzle-orm";
+import { artists, setArtists, sets } from "@/lib/db/schema";
+import { eq, count, ilike, and, desc } from "drizzle-orm";
 
 export async function getArtistBySlug(slug: string) {
   const data = await db.query.artists.findFirst({
@@ -23,6 +23,65 @@ export async function getArtistBySlug(slug: string) {
     genres: (data.artistGenres || [])
       .map((ag) => ag.genre)
       .filter((g): g is NonNullable<typeof g> => g !== null),
+  };
+}
+
+/**
+ * Get paginated artists with set counts for the browse page.
+ * Only returns artists that have at least one published set.
+ */
+export async function getBrowseArtists(options?: {
+  page?: number;
+  pageSize?: number;
+  search?: string;
+}) {
+  const page = options?.page ?? 1;
+  const pageSize = options?.pageSize ?? 30;
+  const offset = (page - 1) * pageSize;
+
+  const searchFilter = options?.search
+    ? ilike(artists.name, `%${options.search}%`)
+    : undefined;
+
+  // Get artists with published set count > 0
+  const data = await db.query.artists.findMany({
+    where: searchFilter,
+    with: {
+      artistGenres: { with: { genre: true } },
+      setArtists: {
+        with: { set: true },
+      },
+    },
+    orderBy: [artists.name],
+    limit: pageSize,
+    offset,
+  });
+
+  // Count total for pagination
+  const [totalResult] = await db
+    .select({ count: count() })
+    .from(artists)
+    .where(searchFilter);
+
+  return {
+    artists: data.map((a) => {
+      const publishedSets = (a.setArtists ?? [])
+        .filter((sa) => sa.set && sa.set.status === "published");
+      return {
+        id: a.id,
+        name: a.name,
+        slug: a.slug,
+        imageUrl: a.imageUrl,
+        setCount: publishedSets.length,
+        genres: (a.artistGenres ?? [])
+          .map((ag) => ag.genre)
+          .filter((g): g is NonNullable<typeof g> => g !== null)
+          .slice(0, 3),
+      };
+    }),
+    total: totalResult?.count ?? 0,
+    page,
+    pageSize,
   };
 }
 

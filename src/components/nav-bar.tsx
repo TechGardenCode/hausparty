@@ -9,6 +9,17 @@ export function NavBar() {
         <Link href="/" className="text-lg font-bold tracking-tight">
           haus<span className="text-accent-primary">&middot;</span>party
         </Link>
+        <div className="hidden items-center gap-4 sm:flex">
+          <Link href="/artists" className="text-sm text-text-secondary transition-colors hover:text-text-primary">
+            Artists
+          </Link>
+          <Link href="/festivals" className="text-sm text-text-secondary transition-colors hover:text-text-primary">
+            Festivals
+          </Link>
+          <Link href="/genres" className="text-sm text-text-secondary transition-colors hover:text-text-primary">
+            Genres
+          </Link>
+        </div>
         <div className="hidden flex-1 sm:flex">
           <NavSearch />
         </div>

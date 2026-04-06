@@ -414,12 +414,21 @@ export async function getFestivalForEdit(festivalId: string) {
   };
 }
 
-export async function getAdminArtists(page: number, pageSize: number) {
+export async function getAdminArtists(
+  page: number,
+  pageSize: number,
+  search?: string
+) {
   const offset = (page - 1) * pageSize;
+  const searchFilter = search ? ilike(artists.name, `%${search}%`) : undefined;
 
-  const [totalResult] = await db.select({ count: count() }).from(artists);
+  const [totalResult] = await db
+    .select({ count: count() })
+    .from(artists)
+    .where(searchFilter);
 
   const data = await db.query.artists.findMany({
+    where: searchFilter,
     with: {
       setArtists: true,
       artistGenres: { with: { genre: true } },

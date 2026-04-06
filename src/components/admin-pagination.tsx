@@ -7,15 +7,25 @@ import { ChevronsLeft, ChevronsRight, ChevronLeft, ChevronRight } from "lucide-r
 interface AdminPaginationProps {
   currentPage: number;
   totalPages: number;
-  buildUrl: (page: number) => string;
+  /** Either a function or a base path + extra params for server component compatibility. */
+  buildUrl?: (page: number) => string;
+  basePath?: string;
+  extraParams?: Record<string, string>;
 }
 
 /**
  * Pagination with first/last, prev/next, page numbers, and jump-to-page.
  * Designed for admin tables with potentially hundreds of pages.
  */
-export function AdminPagination({ currentPage, totalPages, buildUrl }: AdminPaginationProps) {
+export function AdminPagination({ currentPage, totalPages, buildUrl: buildUrlProp, basePath, extraParams }: AdminPaginationProps) {
   const [jumpValue, setJumpValue] = useState("");
+
+  const buildUrl = buildUrlProp ?? ((page: number) => {
+    const params = new URLSearchParams(extraParams);
+    if (page > 1) params.set("page", String(page));
+    const qs = params.toString();
+    return `${basePath ?? "/"}${qs ? `?${qs}` : ""}`;
+  });
 
   if (totalPages <= 1) return null;
 
@@ -100,9 +110,9 @@ export function AdminPagination({ currentPage, totalPages, buildUrl }: AdminPagi
       {totalPages > 10 && (
         <form onSubmit={handleJump} className="ml-3 flex items-center gap-1.5">
           <input
-            type="number"
-            min={1}
-            max={totalPages}
+            type="text"
+            inputMode="numeric"
+            pattern="[0-9]*"
             value={jumpValue}
             onChange={(e) => setJumpValue(e.target.value)}
             placeholder="#"
