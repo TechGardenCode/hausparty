@@ -74,7 +74,7 @@ export async function previewSetFromUrl(data: {
     if (metadata) {
       title = metadata.title;
       channelName = metadata.author;
-      thumbnailUrl = metadata.thumbnailUrl;
+      thumbnailUrl = metadata.thumbnailUrl ?? null;
     }
   } catch {
     // Non-fatal
