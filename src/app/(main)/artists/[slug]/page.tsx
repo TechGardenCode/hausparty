@@ -11,6 +11,7 @@ import { FollowButton } from "@/components/follow-button";
 import { ShareButton } from "@/components/share-button";
 import { SetRow } from "@/components/set-row";
 import { EmptyState } from "@/components/empty-state";
+import { absoluteUrl } from "@/lib/site-url";
 import type { Metadata } from "next";
 
 interface Props {
@@ -31,7 +32,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       title,
       description,
       type: "profile",
-      url: `https://hausparty.app/artists/${slug}`,
+      url: absoluteUrl(`/artists/${slug}`),
       siteName: "hausparty",
     },
     twitter: {
@@ -120,7 +121,7 @@ export default async function ArtistPage({ params }: Props) {
             <ShareButton
               title={`${artist.name} — hausparty`}
               text={`Check out ${artist.name} on hausparty.`}
-              url={`https://hausparty.app/artists/${slug}`}
+              url={absoluteUrl(`/artists/${slug}`)}
             />
             {Object.entries(socials).map(([platform, handle]) => (
               <a

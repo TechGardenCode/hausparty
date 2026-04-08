@@ -15,6 +15,7 @@ import { ShareButton } from "@/components/share-button";
 import { SetRow } from "@/components/set-row";
 import { GenreChip } from "@/components/genre-chip";
 import { EmptyState } from "@/components/empty-state";
+import { absoluteUrl } from "@/lib/site-url";
 import type { Metadata } from "next";
 
 interface Props {
@@ -37,7 +38,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       title,
       description,
       type: "website",
-      url: `https://hausparty.app/festivals/${slug}`,
+      url: absoluteUrl(`/festivals/${slug}`),
       siteName: "hausparty",
     },
     twitter: {
@@ -115,7 +116,7 @@ export default async function FestivalPage({ params, searchParams }: Props) {
             <ShareButton
               title={`${festival.name} — hausparty`}
               text={`Check out sets from ${festival.name} on hausparty.`}
-              url={`https://hausparty.app/festivals/${slug}`}
+              url={absoluteUrl(`/festivals/${slug}`)}
             />
           </div>
         </div>

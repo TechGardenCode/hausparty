@@ -15,6 +15,7 @@ import { GenreChip } from "@/components/genre-chip";
 import { SetRow } from "@/components/set-row";
 import { ReportButton } from "@/components/report-button";
 import { SectionHeader } from "@/components/section-header";
+import { absoluteUrl } from "@/lib/site-url";
 import type { Source } from "@/lib/types/database";
 import type { Metadata } from "next";
 
@@ -37,7 +38,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       title,
       description,
       type: "music.song",
-      url: `https://hausparty.app/sets/${slug}`,
+      url: absoluteUrl(`/sets/${slug}`),
       siteName: "hausparty",
       ...(images.length > 0 && { images }),
     },
@@ -124,7 +125,7 @@ export default async function SetDetailPage({ params }: Props) {
             <ShareButton
               title={`${artistNames} — ${set.event?.name || set.title}`}
               text={`${artistNames} live at ${set.event?.name || ""}. Listen on hausparty.`}
-              url={`https://hausparty.app/sets/${slug}`}
+              url={absoluteUrl(`/sets/${slug}`)}
             />
             <ReportButton setId={set.id} isAuthenticated={!!user} />
           </div>

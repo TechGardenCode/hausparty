@@ -10,6 +10,7 @@ import { FollowButton } from "@/components/follow-button";
 import { ShareButton } from "@/components/share-button";
 import { Pagination } from "@/components/pagination";
 import { EmptyState } from "@/components/empty-state";
+import { absoluteUrl } from "@/lib/site-url";
 import type { Metadata } from "next";
 
 interface Props {
@@ -30,7 +31,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       title,
       description,
       type: "website",
-      url: `https://hausparty.app/genres/${slug}`,
+      url: absoluteUrl(`/genres/${slug}`),
       siteName: "hausparty",
     },
     twitter: {
@@ -72,7 +73,7 @@ export default async function GenreDetailPage({ params, searchParams }: Props) {
           <ShareButton
             title={`${genre.name} DJ Sets — hausparty`}
             text={`Explore live ${genre.name} DJ sets on hausparty.`}
-            url={`https://hausparty.app/genres/${slug}`}
+            url={absoluteUrl(`/genres/${slug}`)}
           />
         </div>
       </div>
