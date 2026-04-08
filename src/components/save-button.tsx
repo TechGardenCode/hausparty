@@ -43,11 +43,13 @@ export function SaveButton({
     });
   }
 
+  const label = optimisticSaved ? "Saved" : "Save";
   return (
     <button
       onClick={handleClick}
+      aria-label={label}
       className={cn(
-        "flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
+        "flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors max-sm:px-2.5",
         optimisticSaved
           ? "bg-accent-primary/15 text-accent-primary"
           : "bg-bg-surface text-text-secondary hover:bg-bg-surface-hover hover:text-text-primary"
@@ -56,7 +58,7 @@ export function SaveButton({
       <Bookmark
         className={cn("h-4 w-4", optimisticSaved && "fill-current")}
       />
-      {optimisticSaved ? "Saved" : "Save"}
+      <span className="max-sm:hidden">{label}</span>
     </button>
   );
 }

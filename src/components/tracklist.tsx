@@ -28,7 +28,7 @@ export function Tracklist({ tracks }: { tracks: Track[] }) {
             <span className="w-6 shrink-0 text-right font-mono text-xs text-text-tertiary">
               {track.position}
             </span>
-            <span className="flex-1 text-text-secondary">{track.title}</span>
+            <span className="min-w-0 flex-1 truncate text-text-secondary">{track.title}</span>
             {track.timestamp_seconds != null && (
               <span className="font-mono text-xs text-text-tertiary">
                 {formatDuration(track.timestamp_seconds)}

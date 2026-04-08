@@ -58,7 +58,7 @@ export default async function FestivalsPage() {
                   {festival.genres.map((g) => (
                     <span
                       key={g.id}
-                      className="rounded-full bg-bg-surface-hover px-2 py-0.5 text-[10px] text-text-tertiary"
+                      className="inline-flex max-w-[8rem] shrink-0 items-center truncate whitespace-nowrap rounded-full bg-bg-surface-hover px-2 py-0.5 text-[10px] text-text-tertiary"
                     >
                       {g.name}
                     </span>

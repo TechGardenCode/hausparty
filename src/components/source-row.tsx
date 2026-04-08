@@ -1,4 +1,4 @@
-import { Video, Headphones, ExternalLink } from "lucide-react";
+import { Video, Headphones, ExternalLink, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { QualityBadge } from "./quality-badge";
 import type { Source } from "@/lib/types/database";
@@ -6,21 +6,26 @@ import type { Source } from "@/lib/types/database";
 interface SourceRowProps {
   source: Source;
   isActive: boolean;
+  isLoading?: boolean;
   onSelect: () => void;
 }
 
-export function SourceRow({ source, isActive, onSelect }: SourceRowProps) {
+export function SourceRow({ source, isActive, isLoading = false, onSelect }: SourceRowProps) {
   return (
     <button
       onClick={onSelect}
+      disabled={isLoading}
       className={cn(
         "flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors",
+        isLoading && "cursor-wait opacity-70",
         isActive
           ? "bg-accent-primary/10 ring-1 ring-accent-primary/30"
           : "hover:bg-bg-surface-hover"
       )}
     >
-      {source.mediaType === "video" ? (
+      {isLoading ? (
+        <Loader2 className="h-4 w-4 shrink-0 animate-spin text-accent-primary" />
+      ) : source.mediaType === "video" ? (
         <Video className="h-4 w-4 shrink-0 text-text-secondary" />
       ) : (
         <Headphones className="h-4 w-4 shrink-0 text-text-secondary" />

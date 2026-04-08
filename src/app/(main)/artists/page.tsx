@@ -47,15 +47,15 @@ export default async function ArtistsPage({ searchParams }: Props) {
           message={q ? `No artists matching "${q}"` : "No artists found."}
         />
       ) : (
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 md:grid-cols-4 lg:grid-cols-6">
           {artists.map((artist) => (
             <Link
               key={artist.id}
               href={`/artists/${artist.slug}`}
-              className="group flex flex-col items-center gap-2 rounded-lg border border-border-subtle bg-bg-surface p-4 transition-colors hover:bg-bg-surface-hover"
+              className="group flex flex-col items-center gap-2 rounded-lg border border-border-subtle bg-bg-surface p-3 transition-colors hover:bg-bg-surface-hover sm:p-4"
             >
               {/* Avatar */}
-              <div className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-full bg-accent-primary/10">
+              <div className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-full bg-accent-primary/10 sm:h-16 sm:w-16">
                 {artist.imageUrl ? (
                   <img
                     src={artist.imageUrl}
@@ -87,7 +87,7 @@ export default async function ArtistsPage({ searchParams }: Props) {
                   {artist.genres.map((g) => (
                     <span
                       key={g.id}
-                      className="rounded-full bg-bg-surface-hover px-2 py-0.5 text-[10px] text-text-tertiary"
+                      className="inline-flex max-w-[8rem] shrink-0 items-center truncate whitespace-nowrap rounded-full bg-bg-surface-hover px-2 py-0.5 text-[10px] text-text-tertiary"
                     >
                       {g.name}
                     </span>

@@ -6,7 +6,7 @@ import { getEmbedUrl } from "@/lib/player/embed-url";
 import { cn } from "@/lib/utils";
 
 export function PersistentIframe() {
-  const { state } = usePlayer();
+  const { state, markLoaded } = usePlayer();
   const pathname = usePathname();
 
   if (state.status === "idle" || !state.source) return null;
@@ -26,9 +26,11 @@ export function PersistentIframe() {
       )}
     >
       <iframe
+        key={embedUrl}
         src={embedUrl}
+        onLoad={markLoaded}
         className="absolute inset-0 h-full w-full"
-        allow="autoplay; encrypted-media; fullscreen"
+        allow="autoplay; encrypted-media; fullscreen; picture-in-picture"
         allowFullScreen
         title="Set player"
       />

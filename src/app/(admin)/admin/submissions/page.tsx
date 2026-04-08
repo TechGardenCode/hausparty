@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getSubmissions } from "@/lib/queries/admin";
 import { formatRelativeDate } from "@/lib/utils";
+import { ScrollableTable } from "@/components/scrollable-table";
 import { SubmissionActions } from "./submission-actions";
 import type { Metadata } from "next";
 
@@ -53,7 +54,7 @@ export default async function SubmissionsPage({ searchParams }: Props) {
           No submissions found.
         </p>
       ) : (
-        <div className="overflow-x-auto">
+        <ScrollableTable>
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border-subtle text-left text-text-tertiary">
@@ -103,7 +104,7 @@ export default async function SubmissionsPage({ searchParams }: Props) {
               ))}
             </tbody>
           </table>
-        </div>
+        </ScrollableTable>
       )}
     </div>
   );

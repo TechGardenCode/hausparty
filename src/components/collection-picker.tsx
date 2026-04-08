@@ -131,7 +131,7 @@ export function CollectionPicker({
       </button>
 
       {open && (
-        <div className="absolute right-0 top-full z-50 mt-2 w-64 rounded-xl border border-border-subtle bg-bg-surface shadow-lg">
+        <div className="absolute right-0 top-full z-50 mt-2 w-64 rounded-xl border border-border-subtle bg-bg-surface shadow-lg max-sm:fixed max-sm:inset-x-4 max-sm:bottom-20 max-sm:left-4 max-sm:right-4 max-sm:top-auto max-sm:mt-0 max-sm:w-auto">
           {collections.length === 0 && (
             <p className="px-3 py-3 text-sm text-text-tertiary">
               No collections yet

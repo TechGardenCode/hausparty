@@ -90,7 +90,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
       {children}
       <div
         aria-live="polite"
-        className="fixed bottom-4 right-4 z-[100] flex flex-col gap-2"
+        className="fixed bottom-4 right-4 z-[100] flex flex-col gap-2 max-sm:bottom-20"
       >
         {toasts.map((t) => (
           <ToastItem key={t.id} toast={t} onDismiss={() => dismiss(t.id)} />

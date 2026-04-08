@@ -2,6 +2,7 @@ import Link from "next/link";
 import { AlertTriangle, Pencil } from "lucide-react";
 import { getAdminArtists } from "@/lib/queries/admin";
 import { AdminPagination } from "@/components/admin-pagination";
+import { ScrollableTable } from "@/components/scrollable-table";
 import { ArtistAdminSearch } from "./artist-admin-search";
 import type { Metadata } from "next";
 
@@ -44,7 +45,7 @@ export default async function AdminArtistsPage({ searchParams }: Props) {
 
       <ArtistAdminSearch initialQuery={q ?? ""} />
 
-      <div className="overflow-x-auto">
+      <ScrollableTable>
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-border-subtle text-left text-text-tertiary">
@@ -89,20 +90,21 @@ export default async function AdminArtistsPage({ searchParams }: Props) {
                 <td className="py-3 pr-4 text-text-secondary">
                   {artist.genres.map((g) => g.name).join(", ") || "—"}
                 </td>
-                <td className="py-3">
+                <td className="py-3 pl-2 pr-4">
                   <Link
                     href={`/admin/artists/${artist.id}/edit`}
-                    className="rounded p-1 text-text-tertiary hover:text-accent-primary"
+                    className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-text-tertiary transition-colors hover:bg-bg-surface-hover hover:text-accent-primary"
                     title="Edit"
+                    aria-label="Edit artist"
                   >
-                    <Pencil className="h-3.5 w-3.5" />
+                    <Pencil className="h-4 w-4" />
                   </Link>
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
-      </div>
+      </ScrollableTable>
 
       <AdminPagination
         currentPage={currentPage}

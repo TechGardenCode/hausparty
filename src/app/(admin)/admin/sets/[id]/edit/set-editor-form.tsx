@@ -411,7 +411,7 @@ export function SetEditorForm({ set, allGenres }: Props) {
                     key={r.id}
                     type="button"
                     onClick={() => addArtist(r)}
-                    className="px-3 py-2 text-left text-sm text-text-secondary hover:bg-bg-surface-hover hover:text-text-primary"
+                    className="px-3 py-2 text-left text-sm text-text-secondary hover:bg-bg-surface-hover hover:text-text-primary max-sm:py-3"
                   >
                     {r.name}
                   </button>
@@ -493,7 +493,7 @@ export function SetEditorForm({ set, allGenres }: Props) {
                     key={r.id}
                     type="button"
                     onClick={() => assignEvent(r)}
-                    className="px-3 py-2 text-left text-sm text-text-secondary hover:bg-bg-surface-hover hover:text-text-primary"
+                    className="px-3 py-2 text-left text-sm text-text-secondary hover:bg-bg-surface-hover hover:text-text-primary max-sm:py-3"
                   >
                     {r.name}
                     {r.festivals && (
@@ -701,7 +701,7 @@ export function SetEditorForm({ set, allGenres }: Props) {
                   key={g.id}
                   type="button"
                   onClick={() => addGenre(g)}
-                  className="px-3 py-2 text-left text-sm text-text-secondary hover:bg-bg-surface-hover hover:text-text-primary"
+                  className="px-3 py-2 text-left text-sm text-text-secondary hover:bg-bg-surface-hover hover:text-text-primary max-sm:py-3"
                 >
                   {g.name}
                 </button>

@@ -20,22 +20,25 @@ function makeSource(overrides: Partial<Source> = {}): Source {
 
 describe("getEmbedUrl", () => {
   describe("YouTube", () => {
-    it("returns embed URL for youtube.com/watch format", () => {
+    it("returns embed URL for youtube.com/watch format with mobile-safe params", () => {
       const source = makeSource({
         url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
       });
-      expect(getEmbedUrl(source)).toBe(
-        "https://www.youtube.com/embed/dQw4w9WgXcQ"
-      );
+      const result = getEmbedUrl(source)!;
+      expect(result).toContain("https://www.youtube.com/embed/dQw4w9WgXcQ?");
+      expect(result).toContain("playsinline=1");
+      expect(result).toContain("modestbranding=1");
+      expect(result).toContain("rel=0");
+      expect(result).not.toContain("autoplay=1");
     });
 
     it("returns embed URL for youtu.be short format", () => {
       const source = makeSource({
         url: "https://youtu.be/dQw4w9WgXcQ",
       });
-      expect(getEmbedUrl(source)).toBe(
-        "https://www.youtube.com/embed/dQw4w9WgXcQ"
-      );
+      const result = getEmbedUrl(source)!;
+      expect(result).toContain("https://www.youtube.com/embed/dQw4w9WgXcQ?");
+      expect(result).toContain("playsinline=1");
     });
 
     it("returns null for unrecognized YouTube URL format", () => {
@@ -73,22 +76,22 @@ describe("getEmbedUrl", () => {
   });
 
   describe("autoplay", () => {
-    it("appends ?autoplay=1 for YouTube when autoplay is true", () => {
+    it("appends autoplay=1 for YouTube when autoplay is true", () => {
       const source = makeSource({
         url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
       });
-      expect(getEmbedUrl(source, true)).toBe(
-        "https://www.youtube.com/embed/dQw4w9WgXcQ?autoplay=1"
-      );
+      const result = getEmbedUrl(source, true)!;
+      expect(result).toContain("autoplay=1");
+      expect(result).toContain("playsinline=1");
     });
 
     it("does not append autoplay param for YouTube when autoplay is false", () => {
       const source = makeSource({
         url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
       });
-      expect(getEmbedUrl(source, false)).toBe(
-        "https://www.youtube.com/embed/dQw4w9WgXcQ"
-      );
+      const result = getEmbedUrl(source, false)!;
+      expect(result).not.toContain("autoplay=1");
+      expect(result).toContain("playsinline=1");
     });
 
     it("sets auto_play=true for SoundCloud when autoplay is true", () => {
@@ -113,9 +116,8 @@ describe("getEmbedUrl", () => {
       const source = makeSource({
         url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
       });
-      expect(getEmbedUrl(source)).toBe(
-        "https://www.youtube.com/embed/dQw4w9WgXcQ"
-      );
+      const result = getEmbedUrl(source)!;
+      expect(result).not.toContain("autoplay=1");
     });
   });
 

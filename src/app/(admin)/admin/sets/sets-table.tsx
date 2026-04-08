@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Pencil } from "lucide-react";
 import { AdminPagination } from "@/components/admin-pagination";
+import { ScrollableTable } from "@/components/scrollable-table";
 import { formatRelativeDate } from "@/lib/utils";
 import { useToast } from "@/components/toast";
 import { bulkAssignGenre, publishSets, unpublishSets } from "@/lib/actions/admin";
@@ -191,7 +192,7 @@ export function SetsTable({ sets, total, currentPage, totalPages, allGenres, sta
         </div>
       )}
 
-      <div className="overflow-x-auto">
+      <ScrollableTable>
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-border-subtle text-left text-text-tertiary">
@@ -200,7 +201,7 @@ export function SetsTable({ sets, total, currentPage, totalPages, allGenres, sta
                   type="checkbox"
                   checked={allSelected}
                   onChange={toggleAll}
-                  className="rounded"
+                  className="h-4 w-4 rounded accent-accent-primary"
                 />
               </th>
               <th className="pb-3 pr-4 font-medium">Title</th>
@@ -224,7 +225,7 @@ export function SetsTable({ sets, total, currentPage, totalPages, allGenres, sta
                     type="checkbox"
                     checked={selected.has(set.id)}
                     onChange={() => toggleOne(set.id)}
-                    className="rounded"
+                    className="h-4 w-4 rounded accent-accent-primary"
                   />
                 </td>
                 <td className="max-w-[250px] truncate py-3 pr-4">
@@ -269,20 +270,21 @@ export function SetsTable({ sets, total, currentPage, totalPages, allGenres, sta
                 <td className="py-3 pr-4 text-text-tertiary">
                   {formatRelativeDate(set.created_at)}
                 </td>
-                <td className="py-3">
+                <td className="py-3 pl-2 pr-4">
                   <Link
                     href={`/admin/sets/${set.id}/edit`}
-                    className="rounded p-1 text-text-tertiary hover:text-accent-primary"
+                    className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-text-tertiary transition-colors hover:bg-bg-surface-hover hover:text-accent-primary"
                     title="Edit"
+                    aria-label="Edit set"
                   >
-                    <Pencil className="h-3.5 w-3.5" />
+                    <Pencil className="h-4 w-4" />
                   </Link>
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
-      </div>
+      </ScrollableTable>
 
       <AdminPagination
         currentPage={currentPage}

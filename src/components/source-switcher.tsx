@@ -32,6 +32,11 @@ export function SourceSwitcher({
 
   // Auto-register with the global player only if nothing is currently playing.
   // This preserves the active set when browsing to other set pages.
+  //
+  // Mobile autoplay gate: on coarse-pointer devices (phones, tablets) browsers
+  // block autoplay without a prior user gesture, so we force the initial mount
+  // to autoplay=false and show the iframe's own play button. Once the user taps
+  // play (or selects another source), subsequent transitions can autoplay.
   useLayoutEffect(() => {
     if (
       !hasAutoPlayed.current &&
@@ -39,7 +44,11 @@ export function SourceSwitcher({
       getEmbedUrl(current, autoplay) &&
       playerState.status === "idle"
     ) {
-      play(current, setSlug, setTitle, thumbnailUrl, autoplay);
+      const isTouchOnly =
+        typeof window !== "undefined" &&
+        window.matchMedia("(hover: none) and (pointer: coarse)").matches;
+      const initialAutoplay = isTouchOnly ? false : autoplay;
+      play(current, setSlug, setTitle, thumbnailUrl, initialAutoplay);
       hasAutoPlayed.current = true;
     }
   }, [current, setSlug, setTitle, thumbnailUrl, play, playerState.status, autoplay]);
@@ -71,6 +80,7 @@ export function SourceSwitcher({
             key={source.id}
             source={source}
             isActive={i === activeIndex}
+            isLoading={playerState.isLoading && i === activeIndex}
             onSelect={() => handleSelect(i)}
           />
         ))}

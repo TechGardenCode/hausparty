@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Pencil } from "lucide-react";
 import { getAllFestivals } from "@/lib/queries/festivals";
+import { ScrollableTable } from "@/components/scrollable-table";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -17,7 +18,7 @@ export default async function AdminFestivalsPage() {
         <span className="text-sm text-text-tertiary">{festivals.length} total</span>
       </div>
 
-      <div className="overflow-x-auto">
+      <ScrollableTable>
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-border-subtle text-left text-text-tertiary">
@@ -59,20 +60,21 @@ export default async function AdminFestivalsPage() {
                 <td className="py-3 pr-4 text-text-secondary">
                   {festival.genres.map((g) => g.name).join(", ") || "—"}
                 </td>
-                <td className="py-3">
+                <td className="py-3 pl-2 pr-4">
                   <Link
                     href={`/admin/festivals/${festival.id}/edit`}
-                    className="rounded p-1 text-text-tertiary hover:text-accent-primary"
+                    className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-text-tertiary transition-colors hover:bg-bg-surface-hover hover:text-accent-primary"
                     title="Edit"
+                    aria-label="Edit festival"
                   >
-                    <Pencil className="h-3.5 w-3.5" />
+                    <Pencil className="h-4 w-4" />
                   </Link>
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
-      </div>
+      </ScrollableTable>
     </div>
   );
 }

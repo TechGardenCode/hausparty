@@ -3,6 +3,7 @@ import Link from "next/link";
 import { LayoutDashboard, Inbox, Disc3, Users, Shield, Download, Search, HeartPulse, Flag, Tent } from "lucide-react";
 import { auth } from "@/lib/auth";
 import { isAdmin } from "@/lib/auth-helpers";
+import { AdminMobileNav } from "@/components/admin-mobile-nav";
 
 const navItems = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
@@ -49,9 +50,12 @@ export default async function AdminLayout({
   }
 
   return (
-    <div className="flex min-h-screen">
-      {/* Sidebar */}
-      <aside className="sticky top-0 flex h-screen w-56 shrink-0 flex-col border-r border-border-subtle bg-bg-surface">
+    <div className="flex min-h-screen flex-col md:flex-row">
+      {/* Mobile top bar (hidden on md+) */}
+      <AdminMobileNav email={user.email ?? ""} />
+
+      {/* Desktop sidebar (hidden on <md) */}
+      <aside className="sticky top-0 hidden h-screen w-56 shrink-0 flex-col border-r border-border-subtle bg-bg-surface md:flex">
         <div className="flex h-14 items-center gap-2 border-b border-border-subtle px-4">
           <Link href="/" className="text-sm font-bold tracking-tight">
             haus<span className="text-accent-primary">&middot;</span>party
@@ -78,7 +82,7 @@ export default async function AdminLayout({
       </aside>
 
       {/* Main content */}
-      <main className="flex-1 overflow-auto p-6">
+      <main className="flex-1 overflow-auto p-4 md:p-6">
         <div className="mx-auto max-w-[1100px]">{children}</div>
       </main>
     </div>

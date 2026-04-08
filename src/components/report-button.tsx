@@ -97,7 +97,7 @@ export function ReportButton({ setId, artistId, isAuthenticated }: ReportButtonP
       </button>
 
       {open && (
-        <div className="absolute right-0 top-full z-10 mt-2 w-64 rounded-lg border border-border-subtle bg-bg-surface p-3 shadow-[0_4px_16px_rgba(0,0,0,0.4)] [animation:avatar-menu-in_150ms_ease-out]">
+        <div className="absolute right-0 top-full z-50 mt-2 w-64 rounded-lg border border-border-subtle bg-bg-surface p-3 shadow-[0_4px_16px_rgba(0,0,0,0.4)] [animation:avatar-menu-in_150ms_ease-out] max-sm:fixed max-sm:inset-x-4 max-sm:bottom-20 max-sm:left-4 max-sm:right-4 max-sm:top-auto max-sm:mt-0 max-sm:w-auto">
           <div className="flex items-center justify-between mb-2">
             <span className="text-xs font-medium text-text-secondary">Report an issue</span>
             <button

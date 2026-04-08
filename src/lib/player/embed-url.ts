@@ -8,8 +8,17 @@ export function getEmbedUrl(source: Source, autoplay = false): string | null {
       /(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]+)/
     );
     if (match) {
-      const base = `https://www.youtube.com/embed/${match[1]}`;
-      return autoplay ? `${base}?autoplay=1` : base;
+      const params = new URLSearchParams({
+        // Inline playback on iOS Safari — required for mobile to not error /
+        // force fullscreen.
+        playsinline: "1",
+        // Modestly reduces branding overlays.
+        modestbranding: "1",
+        // Restrict related videos at end to same channel (can't fully disable).
+        rel: "0",
+      });
+      if (autoplay) params.set("autoplay", "1");
+      return `https://www.youtube.com/embed/${match[1]}?${params.toString()}`;
     }
   }
 

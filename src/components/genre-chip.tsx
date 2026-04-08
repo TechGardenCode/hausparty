@@ -14,7 +14,7 @@ export function GenreChip({
     <Link
       href={`/genres/${slug}`}
       className={cn(
-        "rounded-full px-3 py-1 text-sm font-medium transition-colors",
+        "inline-flex max-w-[12rem] shrink-0 items-center truncate whitespace-nowrap rounded-full px-3 py-1 text-sm font-medium transition-colors",
         active
           ? "bg-accent-primary text-bg-primary"
           : "bg-bg-surface text-text-secondary hover:bg-bg-surface-hover hover:text-text-primary"

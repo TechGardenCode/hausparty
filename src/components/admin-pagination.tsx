@@ -47,13 +47,13 @@ export function AdminPagination({ currentPage, totalPages, buildUrl: buildUrlPro
 
   return (
     <div className="flex items-center justify-center gap-1">
-      {/* First */}
+      {/* First (hidden on mobile) */}
       {currentPage > 2 ? (
-        <Link href={buildUrl(1)} className={`${linkClass} text-text-tertiary`} title="First page">
+        <Link href={buildUrl(1)} className={`${linkClass} hidden text-text-tertiary sm:flex`} title="First page">
           <ChevronsLeft className="h-4 w-4" />
         </Link>
       ) : (
-        <span className={disabledClass}><ChevronsLeft className="h-4 w-4" /></span>
+        <span className={`${disabledClass} hidden sm:flex`}><ChevronsLeft className="h-4 w-4" /></span>
       )}
 
       {/* Previous */}
@@ -65,8 +65,13 @@ export function AdminPagination({ currentPage, totalPages, buildUrl: buildUrlPro
         <span className={disabledClass}><ChevronLeft className="h-4 w-4" /></span>
       )}
 
-      {/* Page numbers */}
-      <div className="flex items-center gap-0.5 px-1">
+      {/* Mobile-only page indicator */}
+      <span className="px-3 text-sm text-text-secondary sm:hidden">
+        Page {currentPage} / {totalPages}
+      </span>
+
+      {/* Page numbers (hidden on mobile) */}
+      <div className="hidden items-center gap-0.5 px-1 sm:flex">
         {pageRange.map((p, i) =>
           p === "..." ? (
             <span key={`ellipsis-${i}`} className="px-1 text-xs text-text-tertiary">
@@ -97,18 +102,18 @@ export function AdminPagination({ currentPage, totalPages, buildUrl: buildUrlPro
         <span className={disabledClass}><ChevronRight className="h-4 w-4" /></span>
       )}
 
-      {/* Last */}
+      {/* Last (hidden on mobile) */}
       {currentPage < totalPages - 1 ? (
-        <Link href={buildUrl(totalPages)} className={`${linkClass} text-text-tertiary`} title="Last page">
+        <Link href={buildUrl(totalPages)} className={`${linkClass} hidden text-text-tertiary sm:flex`} title="Last page">
           <ChevronsRight className="h-4 w-4" />
         </Link>
       ) : (
-        <span className={disabledClass}><ChevronsRight className="h-4 w-4" /></span>
+        <span className={`${disabledClass} hidden sm:flex`}><ChevronsRight className="h-4 w-4" /></span>
       )}
 
-      {/* Jump to page */}
+      {/* Jump to page (hidden on mobile) */}
       {totalPages > 10 && (
-        <form onSubmit={handleJump} className="ml-3 flex items-center gap-1.5">
+        <form onSubmit={handleJump} className="ml-3 hidden items-center gap-1.5 sm:flex">
           <input
             type="text"
             inputMode="numeric"

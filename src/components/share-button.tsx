@@ -39,14 +39,15 @@ export function ShareButton({ title, text, url, className }: ShareButtonProps) {
   return (
     <button
       onClick={handleClick}
+      aria-label="Share"
       className={cn(
-        "flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
+        "flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors max-sm:px-2.5",
         "bg-bg-surface text-text-secondary hover:bg-bg-surface-hover hover:text-text-primary",
         className
       )}
     >
       <Share2 className="h-4 w-4" />
-      Share
+      <span className="max-sm:hidden">Share</span>
     </button>
   );
 }
