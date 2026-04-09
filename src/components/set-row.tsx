@@ -43,14 +43,14 @@ export function SetRow({
       ) : (
         <Play className="h-4 w-4 shrink-0 text-text-tertiary transition-colors group-hover:text-accent-primary" />
       )}
-      <div className="flex min-w-0 flex-1 items-center gap-2">
+      <div className="flex min-w-0 flex-1 flex-col gap-0 sm:flex-row sm:items-center sm:gap-2">
         <span className="truncate text-sm font-medium text-text-primary">
           {artistNames.join(", ")}
         </span>
         {eventName && (
           <>
-            <span className="text-text-tertiary">&mdash;</span>
-            <span className="truncate text-sm text-text-secondary">
+            <span className="hidden text-text-tertiary sm:inline">&mdash;</span>
+            <span className="truncate text-xs text-text-secondary sm:text-sm">
               {eventName}
             </span>
           </>
