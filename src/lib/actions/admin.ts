@@ -13,6 +13,8 @@ import {
   genres,
   artists,
   festivals,
+  sources,
+  sourceSuggestions,
 } from "@/lib/db/schema";
 import { processSubmission } from "@/lib/services/submission-processor";
 import { slugify } from "@/lib/utils";
@@ -348,4 +350,68 @@ export async function adminSearchFestivals(query: string) {
 
 export async function adminGetGenreSuggestions(artistIds: string[]) {
   return _getGenreSuggestionsForArtists(artistIds);
+}
+
+// ============================================================
+// SOURCE SUGGESTIONS
+// ============================================================
+
+export async function approveSourceSuggestion(suggestionId: string) {
+  await requireAdmin();
+
+  const [suggestion] = await db
+    .select()
+    .from(sourceSuggestions)
+    .where(eq(sourceSuggestions.id, suggestionId))
+    .limit(1);
+
+  if (!suggestion) throw new Error("Suggestion not found");
+  if (suggestion.status !== "pending") throw new Error("Suggestion already processed");
+
+  await db.insert(sources).values({
+    setId: suggestion.setId,
+    platform: suggestion.platform,
+    url: suggestion.url,
+    sourceType: suggestion.sourceType,
+    mediaType: suggestion.mediaType,
+  });
+
+  await db
+    .update(sourceSuggestions)
+    .set({ status: "approved", processedAt: new Date() })
+    .where(eq(sourceSuggestions.id, suggestionId));
+
+  // Fetch set slug for revalidation
+  const [set] = await db
+    .select({ slug: sets.slug })
+    .from(sets)
+    .where(eq(sets.id, suggestion.setId))
+    .limit(1);
+
+  if (set) revalidatePath(`/sets/${set.slug}`);
+  revalidatePath("/admin/source-suggestions");
+}
+
+export async function rejectSourceSuggestion(suggestionId: string, reason: string) {
+  await requireAdmin();
+
+  const [suggestion] = await db
+    .select({ status: sourceSuggestions.status })
+    .from(sourceSuggestions)
+    .where(eq(sourceSuggestions.id, suggestionId))
+    .limit(1);
+
+  if (!suggestion) throw new Error("Suggestion not found");
+  if (suggestion.status !== "pending") throw new Error("Suggestion already processed");
+
+  await db
+    .update(sourceSuggestions)
+    .set({
+      status: "rejected",
+      rejectionReason: reason.trim() || null,
+      processedAt: new Date(),
+    })
+    .where(eq(sourceSuggestions.id, suggestionId));
+
+  revalidatePath("/admin/source-suggestions");
 }

@@ -12,6 +12,7 @@ import {
   artistGenres,
   scraperRuns,
   scraperEntityMap,
+  sourceSuggestions,
 } from "@/lib/db/schema";
 import { eq, desc, ilike, inArray, count, isNull, and, sql } from "drizzle-orm";
 
@@ -606,6 +607,50 @@ export async function getPendingDiscoveryCount(): Promise<number> {
       )
     )
     .where(isNull(matchedPairs.artistId));
+
+  return result?.count ?? 0;
+}
+
+// ============================================================
+// SOURCE SUGGESTIONS
+// ============================================================
+
+export async function getSourceSuggestions(statusFilter?: string) {
+  const baseQuery = db
+    .select({
+      id: sourceSuggestions.id,
+      userId: sourceSuggestions.userId,
+      url: sourceSuggestions.url,
+      platform: sourceSuggestions.platform,
+      sourceType: sourceSuggestions.sourceType,
+      mediaType: sourceSuggestions.mediaType,
+      note: sourceSuggestions.note,
+      status: sourceSuggestions.status,
+      rejectionReason: sourceSuggestions.rejectionReason,
+      createdAt: sourceSuggestions.createdAt,
+      processedAt: sourceSuggestions.processedAt,
+      setId: sourceSuggestions.setId,
+      setTitle: sets.title,
+      setSlug: sets.slug,
+    })
+    .from(sourceSuggestions)
+    .innerJoin(sets, eq(sourceSuggestions.setId, sets.id))
+    .orderBy(desc(sourceSuggestions.createdAt));
+
+  if (statusFilter && statusFilter !== "all") {
+    return baseQuery.where(
+      eq(sourceSuggestions.status, statusFilter as "pending" | "approved" | "rejected")
+    );
+  }
+
+  return baseQuery;
+}
+
+export async function getPendingSourceSuggestionCount() {
+  const [result] = await db
+    .select({ count: count() })
+    .from(sourceSuggestions)
+    .where(eq(sourceSuggestions.status, "pending"));
 
   return result?.count ?? 0;
 }

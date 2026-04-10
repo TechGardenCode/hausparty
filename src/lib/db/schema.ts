@@ -274,6 +274,30 @@ export const submissions = pgTable(
   (t) => [index("idx_submissions_user").on(t.userId)]
 );
 
+export const sourceSuggestions = pgTable(
+  "source_suggestions",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id").notNull(),
+    setId: uuid("set_id")
+      .notNull()
+      .references(() => sets.id, { onDelete: "cascade" }),
+    url: text("url").notNull(),
+    platform: platformEnum("platform").notNull(),
+    sourceType: sourceTypeEnum("source_type").notNull().default("fan"),
+    mediaType: mediaTypeEnum("media_type").notNull().default("video"),
+    note: text("note"),
+    status: submissionStatusEnum("status").notNull().default("pending"),
+    rejectionReason: text("rejection_reason"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    processedAt: timestamp("processed_at"),
+  },
+  (t) => [
+    index("idx_source_suggestions_user").on(t.userId),
+    index("idx_source_suggestions_status").on(t.status),
+  ]
+);
+
 export const userRoles = pgTable(
   "user_roles",
   {
@@ -444,4 +468,8 @@ export const submissionsRelations = relations(submissions, ({ one }) => ({
 export const reportsRelations = relations(reports, ({ one }) => ({
   set: one(sets, { fields: [reports.setId], references: [sets.id] }),
   artist: one(artists, { fields: [reports.artistId], references: [artists.id] }),
+}));
+
+export const sourceSuggestionsRelations = relations(sourceSuggestions, ({ one }) => ({
+  set: one(sets, { fields: [sourceSuggestions.setId], references: [sets.id] }),
 }));

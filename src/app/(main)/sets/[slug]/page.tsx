@@ -14,6 +14,7 @@ import { ShareButton } from "@/components/share-button";
 import { GenreChip } from "@/components/genre-chip";
 import { SetRow } from "@/components/set-row";
 import { ReportButton } from "@/components/report-button";
+import { AddSourceButton } from "@/components/add-source-button";
 import { SectionHeader } from "@/components/section-header";
 import { absoluteUrl } from "@/lib/site-url";
 import type { Source } from "@/lib/types/database";
@@ -127,6 +128,7 @@ export default async function SetDetailPage({ params }: Props) {
               text={`${artistNames} live at ${set.event?.name || ""}. Listen on hausparty.`}
               url={absoluteUrl(`/sets/${slug}`)}
             />
+            <AddSourceButton setId={set.id} isAuthenticated={!!user} />
             <ReportButton setId={set.id} isAuthenticated={!!user} />
           </div>
         </div>

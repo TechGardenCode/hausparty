@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Search as SearchIcon } from "lucide-react";
 import { searchSets, searchArtists, searchFestivals } from "@/lib/queries/search";
 import { SetRow } from "@/components/set-row";
@@ -66,7 +67,18 @@ export default async function SearchPage({ searchParams }: Props) {
       {activeTab === "sets" && (
         <div className="flex flex-col">
           {sets.length === 0 ? (
-            <EmptyState icon={SearchIcon} message="No sets found" />
+            <EmptyState
+              icon={SearchIcon}
+              message="No sets found"
+              action={
+                <Link
+                  href="/submit"
+                  className="text-sm text-accent-primary transition-colors hover:text-accent-primary/80"
+                >
+                  Can&apos;t find it? Submit a set
+                </Link>
+              }
+            />
           ) : (
             sets.map((set) => (
               <SetRow

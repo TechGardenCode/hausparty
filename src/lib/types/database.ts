@@ -17,6 +17,7 @@ export type {
   UserSettings,
   EventArtist,
   Report,
+  SourceSuggestion,
   ReportType,
   ReportStatus,
   Platform,

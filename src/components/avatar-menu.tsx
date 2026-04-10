@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback } from "react";
 import Link from "next/link";
-import { Library, Settings, LogOut, Shield } from "lucide-react";
+import { Library, Settings, LogOut, Shield, Plus } from "lucide-react";
 import { signOutAction } from "@/lib/actions/auth";
 
 interface AvatarMenuProps {
@@ -12,6 +12,7 @@ interface AvatarMenuProps {
 }
 
 const baseMenuItems = [
+  { label: "Submit a Set", href: "/submit", icon: Plus },
   { label: "Library", href: "/library", icon: Library },
   { label: "Settings", href: "/settings", icon: Settings },
 ] as const;

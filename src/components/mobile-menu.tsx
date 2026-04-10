@@ -2,7 +2,7 @@
 
 import { useCallback, useState } from "react";
 import Link from "next/link";
-import { Menu, Search, Disc3, Tent, Music } from "lucide-react";
+import { Menu, Search, Disc3, Tent, Music, Plus } from "lucide-react";
 import { Drawer } from "./drawer";
 import { SearchOverlay } from "./search-overlay";
 
@@ -66,6 +66,17 @@ export function MobileMenu() {
               {label}
             </Link>
           ))}
+
+          <div className="my-1 h-px bg-border-subtle" />
+
+          <Link
+            href="/submit"
+            onClick={closeDrawer}
+            className="flex items-center gap-3 px-4 py-3 text-sm text-accent-primary transition-colors hover:bg-bg-surface-hover"
+          >
+            <Plus className="h-4 w-4" />
+            Submit a Set
+          </Link>
         </nav>
       </Drawer>
 

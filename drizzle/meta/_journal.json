@@ -50,6 +50,13 @@
       "when": 1775523200000,
       "tag": "0006_seed-images",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1775845453625,
+      "tag": "0007_ancient_giant_girl",
+      "breakpoints": true
     }
   ]
 }

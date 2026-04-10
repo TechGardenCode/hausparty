@@ -17,6 +17,7 @@ import type {
   scraperEntityMap,
   userSettings,
   reports,
+  sourceSuggestions,
 } from "./schema";
 
 // Row types inferred from Drizzle schema
@@ -37,6 +38,7 @@ export type ScraperEntityMap = InferSelectModel<typeof scraperEntityMap>;
 export type UserSettings = InferSelectModel<typeof userSettings>;
 export type EventArtist = InferSelectModel<typeof eventArtists>;
 export type Report = InferSelectModel<typeof reports>;
+export type SourceSuggestion = InferSelectModel<typeof sourceSuggestions>;
 
 // Enum types
 export type Platform = "youtube" | "soundcloud";

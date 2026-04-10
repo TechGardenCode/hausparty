@@ -21,6 +21,9 @@ export function NavBar() {
           <Link href="/genres" className="text-sm text-text-secondary transition-colors hover:text-text-primary">
             Genres
           </Link>
+          <Link href="/submit" className="text-sm text-accent-primary transition-colors hover:text-accent-primary/80">
+            + Submit
+          </Link>
         </div>
         <div className="hidden flex-1 sm:flex">
           <NavSearch />
