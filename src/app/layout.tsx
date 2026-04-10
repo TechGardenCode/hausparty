@@ -46,7 +46,7 @@ export default function RootLayout({
       >
         <OpenPanelComponent
           clientId={process.env.NEXT_PUBLIC_OPENPANEL_CLIENT_ID!}
-          apiUrl={process.env.NEXT_PUBLIC_OPENPANEL_API_URL}
+          scriptUrl="/api/op/op1.js"
           trackScreenViews
           trackOutgoingLinks
           trackAttributes
