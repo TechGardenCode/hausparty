@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
+import { OpenPanelComponent } from "@openpanel/nextjs";
 import { ToastProvider } from "@/components/toast";
 import "./globals.css";
 
@@ -43,6 +44,13 @@ export default function RootLayout({
       <body
         className={`${inter.variable} ${jetbrainsMono.variable} antialiased`}
       >
+        <OpenPanelComponent
+          clientId={process.env.NEXT_PUBLIC_OPENPANEL_CLIENT_ID!}
+          apiUrl={process.env.NEXT_PUBLIC_OPENPANEL_API_URL}
+          trackScreenViews
+          trackOutgoingLinks
+          trackAttributes
+        />
         <ToastProvider>
           {children}
         </ToastProvider>
