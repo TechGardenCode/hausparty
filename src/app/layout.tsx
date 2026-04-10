@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
 import { OpenPanelComponent } from "@openpanel/nextjs";
+import { auth } from "@/lib/auth";
+import { AnalyticsIdentity } from "@/components/analytics-identity";
 import { ToastProvider } from "@/components/toast";
 import "./globals.css";
 
@@ -34,11 +36,12 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const session = await auth();
   return (
     <html lang="en" className="dark">
       <body
@@ -51,6 +54,9 @@ export default function RootLayout({
           trackScreenViews
           trackOutgoingLinks
           trackAttributes
+        />
+        <AnalyticsIdentity
+          user={session?.user ? { id: session.user.id!, name: session.user.name, email: session.user.email } : null}
         />
         <ToastProvider>
           {children}
