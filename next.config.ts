@@ -42,10 +42,4 @@ export default withSentryConfig(nextConfig, {
   sourcemaps: {
     disable: true,
   },
-  // Disable Sentry's auto-wrapping of app directory components — it injects
-  // TransformStream wrappers around RSC streaming responses that crash with
-  // `controller[kState].transformAlgorithm is not a function` on Node 22/24.
-  // Error capture still works via manual captureException(), error boundaries
-  // (global-error.tsx, error.tsx), and the onRequestError instrumentation hook.
-  autoInstrumentAppDirectory: false,
 });
