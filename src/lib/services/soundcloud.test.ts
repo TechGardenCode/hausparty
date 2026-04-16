@@ -48,7 +48,8 @@ describe("fetchSoundCloudMetadata", () => {
     );
 
     expect(mockFetch).toHaveBeenCalledWith(
-      `https://soundcloud.com/oembed?url=${encodeURIComponent("https://soundcloud.com/artist/set-name")}&format=json`
+      `https://soundcloud.com/oembed?url=${encodeURIComponent("https://soundcloud.com/artist/set-name")}&format=json`,
+      expect.objectContaining({ signal: expect.any(AbortSignal) }),
     );
   });
 

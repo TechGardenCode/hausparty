@@ -57,7 +57,9 @@ export class EdmtrainScraper implements Scraper<EdmtrainRawEvent> {
       }
     }
 
-    const response = await fetch(url.toString());
+    const response = await fetch(url.toString(), {
+      signal: AbortSignal.timeout(10_000),
+    });
     if (!response.ok) {
       throw new Error(
         `edmtrain API returned ${response.status}: ${response.statusText}`

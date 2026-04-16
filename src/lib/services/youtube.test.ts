@@ -46,7 +46,8 @@ describe("fetchYouTubeMetadata", () => {
     await fetchYouTubeMetadata("https://www.youtube.com/watch?v=abc&t=120");
 
     expect(mockFetch).toHaveBeenCalledWith(
-      `https://www.youtube.com/oembed?url=${encodeURIComponent("https://www.youtube.com/watch?v=abc&t=120")}&format=json`
+      `https://www.youtube.com/oembed?url=${encodeURIComponent("https://www.youtube.com/watch?v=abc&t=120")}&format=json`,
+      expect.objectContaining({ signal: expect.any(AbortSignal) }),
     );
   });
 

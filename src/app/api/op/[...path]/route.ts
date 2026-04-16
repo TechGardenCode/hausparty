@@ -33,7 +33,10 @@ export async function GET(request: Request) {
   const scriptUrl = `${getDomainBase()}${SCRIPT_PATH}`;
 
   try {
-    const res = await fetch(scriptUrl, { next: { revalidate: 86400 } });
+    const res = await fetch(scriptUrl, {
+      next: { revalidate: 86400 },
+      signal: AbortSignal.timeout(3000),
+    });
     const script = await res.text();
 
     return new NextResponse(script, {
@@ -87,6 +90,7 @@ export async function POST(request: Request) {
       method: "POST",
       headers,
       body,
+      signal: AbortSignal.timeout(3000),
     });
 
     const contentType = res.headers.get("content-type") ?? "";

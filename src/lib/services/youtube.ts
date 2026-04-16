@@ -8,7 +8,8 @@ export async function fetchYouTubeMetadata(
   url: string
 ): Promise<OEmbedMetadata | null> {
   const res = await fetch(
-    `https://www.youtube.com/oembed?url=${encodeURIComponent(url)}&format=json`
+    `https://www.youtube.com/oembed?url=${encodeURIComponent(url)}&format=json`,
+    { signal: AbortSignal.timeout(5000) },
   );
   if (!res.ok) return null;
   const data = await res.json();
