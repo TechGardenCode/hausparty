@@ -1,7 +1,6 @@
 import { db } from "@/lib/db";
-import { sets, setArtists, sources, events } from "@/lib/db/schema";
-import { eq, and, sql } from "drizzle-orm";
-import { slugify } from "@/lib/utils";
+import { events } from "@/lib/db/schema";
+import { eq } from "drizzle-orm";
 import { detectPlatform } from "@/lib/services/submission-processor";
 import { normalizeSourceUrl } from "@/lib/services/url-normalization";
 import { fetchYouTubeMetadata } from "@/lib/services/youtube";
@@ -10,7 +9,8 @@ import { parseYouTubeTitle } from "@/lib/services/normalization/title-parser";
 import { classifySource } from "@/lib/services/normalization/source-classifier";
 import { inferGenresForSet } from "@/lib/services/normalization/genre-inference";
 import { evaluateAndRefreshIfPublished } from "@/lib/services/sets/completeness";
-import type { Platform, MediaType } from "@/lib/db/types";
+import { findOrLinkSet } from "@/lib/services/sets/find-or-link";
+import type { Platform } from "@/lib/db/types";
 
 export interface AssembleOptions {
   url: string;
@@ -28,50 +28,19 @@ export interface AssembleResult {
   status: "draft" | "published";
 }
 
-/**
- * Assemble a draft set from a URL with pre-resolved metadata.
- *
- * Pipeline:
- * 1. Platform detect + URL normalize
- * 2. URL dedup check against sources table
- * 3. Fetch OEmbed metadata
- * 4. Parse title for additional metadata
- * 5. Classify source type (official/artist/fan)
- * 6. Check for existing set with same (artist, event)
- * 7. Create or augment set
- * 8. Infer genres from artist
- * 9. Run completeness scoring
- */
 export async function assembleSetFromUrl(
   opts: AssembleOptions
 ): Promise<AssembleResult> {
-  const { url, artistId, artistName, eventId, performedAt } = opts;
+  const { url, artistId, artistName, eventId } = opts;
 
-  // 1. Platform detect
   const platform = detectPlatform(url);
   if (!platform) {
     throw new Error(`Unsupported platform for URL: ${url}`);
   }
 
-  // 2. URL dedup
   const normalizedUrl = normalizeSourceUrl(url);
-  const [existingSource] = await db
-    .select({ id: sources.id, setId: sources.setId })
-    .from(sources)
-    .where(eq(sources.url, normalizedUrl))
-    .limit(1);
-
-  if (existingSource) {
-    return { setId: existingSource.setId, action: "duplicate", status: "draft" };
-  }
-
-  // 3. Fetch OEmbed metadata
   const metadata = await fetchMetadata(normalizedUrl, platform);
-
-  // 4. Parse title for additional context
   const parsed = metadata ? parseYouTubeTitle(metadata.title) : null;
-
-  // 5. Classify source type
   const sourceType = metadata
     ? classifySource({
         channelName: metadata.author,
@@ -80,54 +49,32 @@ export async function assembleSetFromUrl(
       })
     : "fan";
 
-  // 6. Check for existing set with same artist + event
-  if (eventId) {
-    const existingSet = await findExistingSet(artistId, eventId);
-    if (existingSet) {
-      // Add source to existing set
-      await createSource(existingSet, platform, normalizedUrl, sourceType);
-      const status = await evaluateAndRefreshIfPublished(existingSet);
-      return { setId: existingSet, action: "added_source", status };
-    }
-  }
+  const performedAt = await resolvePerformedAt(opts.performedAt, eventId);
+  const titleHint = parsed?.cleanTitle ?? metadata?.title ?? "Untitled Set";
 
-  // 7. Create new draft set
-  const title = parsed?.cleanTitle ?? metadata?.title ?? "Untitled Set";
-  const setId = await createSet({
-    title,
-    artistName,
+  const link = await findOrLinkSet({
+    primaryArtistId: artistId,
+    b2bArtistIds: opts.b2bArtistIds,
     eventId,
     performedAt,
+    sourceUrl: normalizedUrl,
+    platform,
+    sourceType,
+    titleHint,
   });
 
-  // Link primary artist
-  await db
-    .insert(setArtists)
-    .values({ setId, artistId, position: 0 })
-    .onConflictDoNothing();
-
-  // Link B2B artists
-  const allArtistIds = [artistId];
-  if (opts.b2bArtistIds) {
-    for (let i = 0; i < opts.b2bArtistIds.length; i++) {
-      await db
-        .insert(setArtists)
-        .values({ setId, artistId: opts.b2bArtistIds[i], position: i + 1 })
-        .onConflictDoNothing();
-      allArtistIds.push(opts.b2bArtistIds[i]);
-    }
+  if (link.action === "added_source") {
+    // URL already recorded — no state change for the set itself.
+    const status = await evaluateAndRefreshIfPublished(link.setId);
+    return { setId: link.setId, action: "added_source", status };
   }
 
-  // Create source
-  await createSource(setId, platform, normalizedUrl, sourceType);
+  const allArtistIds = [artistId, ...(opts.b2bArtistIds ?? [])];
+  await inferGenresForSet(link.setId, allArtistIds);
+  const status = await evaluateAndRefreshIfPublished(link.setId);
 
-  // 8. Infer genres from all artists
-  await inferGenresForSet(setId, allArtistIds);
-
-  // 9. Completeness scoring (may auto-publish)
-  const finalStatus = await evaluateAndRefreshIfPublished(setId);
-
-  return { setId, action: "created", status: finalStatus };
+  const action = link.action === "linked_existing" ? "added_source" : "created";
+  return { setId: link.setId, action, status };
 }
 
 async function fetchMetadata(url: string, platform: Platform) {
@@ -140,83 +87,16 @@ async function fetchMetadata(url: string, platform: Platform) {
   return null;
 }
 
-async function findExistingSet(
-  artistId: string,
-  eventId: string
-): Promise<string | null> {
-  const [row] = await db
-    .select({ setId: setArtists.setId })
-    .from(setArtists)
-    .innerJoin(sets, eq(sets.id, setArtists.setId))
-    .where(and(eq(setArtists.artistId, artistId), eq(sets.eventId, eventId)))
+async function resolvePerformedAt(
+  provided: Date | undefined,
+  eventId: string | undefined
+): Promise<Date | undefined> {
+  if (provided) return provided;
+  if (!eventId) return undefined;
+  const [event] = await db
+    .select({ dateStart: events.dateStart })
+    .from(events)
+    .where(eq(events.id, eventId))
     .limit(1);
-
-  return row?.setId ?? null;
-}
-
-async function createSet(opts: {
-  title: string;
-  artistName: string;
-  eventId?: string;
-  performedAt?: Date;
-}): Promise<string> {
-  const slug = slugify(`${opts.artistName}-${opts.title}`);
-
-  // Get performedAt from event if not provided
-  let performedAt = opts.performedAt;
-  if (!performedAt && opts.eventId) {
-    const [event] = await db
-      .select({ dateStart: events.dateStart })
-      .from(events)
-      .where(eq(events.id, opts.eventId))
-      .limit(1);
-    if (event?.dateStart) {
-      performedAt = new Date(event.dateStart);
-    }
-  }
-
-  try {
-    const [newSet] = await db
-      .insert(sets)
-      .values({
-        title: opts.title,
-        slug,
-        eventId: opts.eventId ?? null,
-        performedAt: performedAt ?? null,
-        status: "draft",
-      })
-      .returning({ id: sets.id });
-    return newSet.id;
-  } catch {
-    // Slug collision — append timestamp
-    const fallbackSlug = `${slug}-${Date.now().toString(36)}`;
-    const [retrySet] = await db
-      .insert(sets)
-      .values({
-        title: opts.title,
-        slug: fallbackSlug,
-        eventId: opts.eventId ?? null,
-        performedAt: performedAt ?? null,
-        status: "draft",
-      })
-      .returning({ id: sets.id });
-    return retrySet.id;
-  }
-}
-
-async function createSource(
-  setId: string,
-  platform: Platform,
-  url: string,
-  sourceType: "official" | "artist" | "fan"
-): Promise<void> {
-  const mediaType: MediaType = platform === "youtube" ? "video" : "audio";
-
-  await db.insert(sources).values({
-    setId,
-    platform,
-    url,
-    sourceType,
-    mediaType,
-  });
+  return event?.dateStart ? new Date(event.dateStart) : undefined;
 }

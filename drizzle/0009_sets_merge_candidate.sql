@@ -1,0 +1,3 @@
+ALTER TABLE "sets" ADD COLUMN "merge_candidate_for" uuid;--> statement-breakpoint
+ALTER TABLE "sets" ADD CONSTRAINT "sets_merge_candidate_for_sets_id_fk" FOREIGN KEY ("merge_candidate_for") REFERENCES "public"."sets"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
+CREATE INDEX "sets_merge_candidate_for_idx" ON "sets" USING btree ("merge_candidate_for") WHERE "merge_candidate_for" IS NOT NULL;

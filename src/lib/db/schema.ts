@@ -11,8 +11,9 @@ import {
   primaryKey,
   uniqueIndex,
   index,
+  type AnyPgColumn,
 } from "drizzle-orm/pg-core";
-import { relations } from "drizzle-orm";
+import { relations, sql } from "drizzle-orm";
 
 // ============================================================
 // ENUMS
@@ -128,9 +129,17 @@ export const sets = pgTable(
     performedAt: timestamp("performed_at"),
     durationSeconds: integer("duration_seconds"),
     status: setStatusEnum("status").notNull().default("published"),
+    mergeCandidateFor: uuid("merge_candidate_for").references((): AnyPgColumn => sets.id, {
+      onDelete: "set null",
+    }),
     createdAt: timestamp("created_at").notNull().defaultNow(),
   },
-  (t) => [index("idx_sets_performed_at").on(t.performedAt)]
+  (t) => [
+    index("idx_sets_performed_at").on(t.performedAt),
+    index("sets_merge_candidate_for_idx")
+      .on(t.mergeCandidateFor)
+      .where(sql`"merge_candidate_for" IS NOT NULL`),
+  ]
 );
 
 export const setArtists = pgTable(

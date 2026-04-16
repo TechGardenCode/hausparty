@@ -1,13 +1,15 @@
 import { db } from "@/lib/db";
-import { submissions, sources, sets, setArtists } from "@/lib/db/schema";
-import { eq, inArray, asc, sql } from "drizzle-orm";
-import { slugify } from "@/lib/utils";
+import { submissions } from "@/lib/db/schema";
+import { eq, asc, sql } from "drizzle-orm";
 import { findOrCreateArtist } from "@/lib/services/artist-matching";
 import { normalizeSourceUrl } from "@/lib/services/url-normalization";
+import { findOrLinkSet } from "@/lib/services/sets/find-or-link";
+import { inferGenresForSet } from "@/lib/services/normalization/genre-inference";
+import { evaluateAndRefreshIfPublished } from "@/lib/services/sets/completeness";
 import { fetchYouTubeMetadata } from "./youtube";
 import { fetchSoundCloudMetadata } from "./soundcloud";
 import type { OEmbedMetadata } from "./youtube";
-import type { Platform, MediaType, SourceType } from "@/lib/db/types";
+import type { Platform } from "@/lib/db/types";
 
 interface ProcessResult {
   submissionId: string;
@@ -57,7 +59,6 @@ async function rejectSubmission(submissionId: string, reason: string) {
 export async function processSubmission(
   submissionId: string
 ): Promise<ProcessResult> {
-  // 1. Fetch submission
   const [submission] = await db
     .select()
     .from(submissions)
@@ -68,52 +69,25 @@ export async function processSubmission(
     return { submissionId, status: "rejected", reason: "Submission not found" };
   }
 
-  // 2. Detect platform
   const platform = detectPlatform(submission.url);
   if (!platform) {
     await rejectSubmission(submissionId, "Unsupported platform");
     return { submissionId, status: "rejected", reason: "Unsupported platform" };
   }
 
-  // 3. Fetch metadata
   const metadata = await fetchMetadata(submission.url, platform);
   if (!metadata) {
-    await rejectSubmission(submissionId, "Could not fetch metadata — URL may be invalid or unreachable");
+    await rejectSubmission(
+      submissionId,
+      "Could not fetch metadata — URL may be invalid or unreachable"
+    );
     return { submissionId, status: "rejected", reason: "Metadata fetch failed" };
   }
 
-  // 4. Dedup check
-  const normalizedUrl = normalizeSourceUrl(submission.url);
-  const [existingSource] = await db
-    .select({ id: sources.id, setId: sources.setId })
-    .from(sources)
-    .where(inArray(sources.url, [normalizedUrl, submission.url]))
-    .limit(1);
-
-  if (existingSource) {
-    await db
-      .update(submissions)
-      .set({
-        status: "rejected",
-        rejectionReason: "Duplicate — this URL already exists in the catalog",
-        matchedSetId: existingSource.setId,
-        processedAt: new Date(),
-      })
-      .where(eq(submissions.id, submissionId));
-    return {
-      submissionId,
-      status: "duplicate",
-      setId: existingSource.setId,
-      reason: "Duplicate URL",
-    };
-  }
-
-  // 5. Parse title
   const parsed = parseTitle(metadata.title);
   const artistName = submission.artistName || parsed.artist || metadata.author;
   const setTitle = parsed.setTitle || metadata.title;
 
-  // 6. Look up or create artist
   let artistId: string;
   try {
     const artistResult = await findOrCreateArtist(artistName);
@@ -123,62 +97,53 @@ export async function processSubmission(
     return { submissionId, status: "rejected", reason: "Artist creation failed" };
   }
 
-  // 7. Create set
-  const setSlug = slugify(`${artistName}-${setTitle}`);
-  let setId: string;
-  try {
-    const [newSet] = await db
-      .insert(sets)
-      .values({ title: setTitle, slug: setSlug })
-      .returning({ id: sets.id });
-    setId = newSet.id;
-  } catch {
-    const fallbackSlug = `${setSlug}-${Date.now().toString(36)}`;
-    try {
-      const [retrySet] = await db
-        .insert(sets)
-        .values({ title: setTitle, slug: fallbackSlug })
-        .returning({ id: sets.id });
-      setId = retrySet.id;
-    } catch {
-      await rejectSubmission(submissionId, "Failed to create set record");
-      return { submissionId, status: "rejected", reason: "Set creation failed" };
-    }
-  }
+  const normalizedUrl = normalizeSourceUrl(submission.url);
+  const performedAt = submission.performedDate
+    ? new Date(submission.performedDate)
+    : undefined;
 
-  return await finalizeSubmission(submissionId, setId, artistId, submission.url, platform);
-}
-
-async function finalizeSubmission(
-  submissionId: string,
-  setId: string,
-  artistId: string,
-  url: string,
-  platform: Platform
-): Promise<ProcessResult> {
-  const mediaType: MediaType = platform === "youtube" ? "video" : "audio";
-  const sourceType: SourceType = "fan";
-
-  await db.insert(sources).values({
-    setId,
+  const link = await findOrLinkSet({
+    primaryArtistId: artistId,
+    performedAt,
+    sourceUrl: normalizedUrl,
     platform,
-    url: normalizeSourceUrl(url),
-    sourceType,
-    mediaType,
+    sourceType: "fan",
+    titleHint: setTitle,
   });
 
-  await db.insert(setArtists).values({ setId, artistId, position: 0 });
+  if (link.action === "added_source") {
+    // URL was already in the catalog — no new source inserted. Treat as duplicate.
+    await db
+      .update(submissions)
+      .set({
+        status: "rejected",
+        rejectionReason: "Duplicate — this URL already exists in the catalog",
+        matchedSetId: link.setId,
+        processedAt: new Date(),
+      })
+      .where(eq(submissions.id, submissionId));
+    return {
+      submissionId,
+      status: "duplicate",
+      setId: link.setId,
+      reason: "Duplicate URL",
+    };
+  }
+
+  // linked_existing or created — a new source was recorded.
+  await inferGenresForSet(link.setId, [artistId]);
+  await evaluateAndRefreshIfPublished(link.setId);
 
   await db
     .update(submissions)
     .set({
       status: "approved",
-      matchedSetId: setId,
+      matchedSetId: link.setId,
       processedAt: new Date(),
     })
     .where(eq(submissions.id, submissionId));
 
-  return { submissionId, status: "approved", setId };
+  return { submissionId, status: "approved", setId: link.setId };
 }
 
 export async function processPendingSubmissions(): Promise<{
@@ -201,8 +166,10 @@ export async function processPendingSubmissions(): Promise<{
     results.push(result);
   }
 
-  const createdSets = results.filter((r) => r.status === "approved" && r.setId);
-  if (createdSets.length > 0) {
+  const landed = results.filter(
+    (r) => r.status === "approved" && r.setId
+  );
+  if (landed.length > 0) {
     await db.execute(sql`SELECT refresh_search_view()`);
   }
 
