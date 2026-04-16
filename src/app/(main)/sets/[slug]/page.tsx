@@ -62,12 +62,16 @@ export default async function SetDetailPage({ params }: Props) {
 
   // Was this slug redirected because the set was merged? Follow the chain.
   const redirectSlug = await resolveSlugRedirect(slug);
+  console.log(
+    `[sets/[slug]] slug="${slug}" resolveSlugRedirect -> ${redirectSlug}`
+  );
   if (redirectSlug && redirectSlug !== slug) {
     permanentRedirect(`/sets/${redirectSlug}`);
   }
 
   const set = await getSetBySlug(slug);
   if (!set) notFound();
+  console.log(`[sets/[slug]] set.status="${set.status}" id=${set.id}`);
   // Merged sets never render even on a direct slug hit — the redirect above
   // should have caught it; if not, the data is broken, don't expose it.
   if (set.status === "merged") notFound();
