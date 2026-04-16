@@ -3,6 +3,14 @@ import { withSentryConfig } from "@sentry/nextjs";
 
 const nextConfig: NextConfig = {
   output: "standalone",
+  experimental: {
+    serverActions: {
+      // Default is 1MB. Our largest legitimate payload is a submission
+      // form with URL + small metadata — comfortably under 100kb. Reject
+      // oversized bodies at the framework layer before they reach actions.
+      bodySizeLimit: "100kb",
+    },
+  },
   env: {
     NEXT_PUBLIC_SENTRY_DSN:
       process.env.NEXT_PUBLIC_SENTRY_DSN ||
