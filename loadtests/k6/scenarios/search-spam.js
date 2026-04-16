@@ -36,7 +36,10 @@ export default function () {
   allowedThroughLimit.add(res.status === 200);
   check(res, {
     "status is 200 or 429": (r) => r.status === 200 || r.status === 429,
+    // k6's r.headers is case-sensitive; app-layer emits lowercase
+    // `retry-after`, Envoy emits `Retry-After`. Check both.
     "429 has retry-after header": (r) =>
-      r.status !== 429 || !!r.headers["Retry-After"],
+      r.status !== 429 ||
+      !!(r.headers["Retry-After"] || r.headers["retry-after"]),
   });
 }
