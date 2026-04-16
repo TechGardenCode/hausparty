@@ -31,6 +31,16 @@ interface Props {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
+
+  // Hoist the slug redirect here too — once generateMetadata returns and the
+  // response head commits, a later permanentRedirect() from the page body
+  // can only embed a 308 as an RSC directive (browser honors it, but direct
+  // HTTP clients see 200). Redirecting at metadata time issues a real 308.
+  const redirectSlug = await resolveSlugRedirect(slug);
+  if (redirectSlug && redirectSlug !== slug) {
+    permanentRedirect(`/sets/${redirectSlug}`);
+  }
+
   const set = await getSetBySlug(slug);
   if (!set) return {};
   const artistNames = set.artists.map((a: { name: string }) => a.name).join(", ");
@@ -60,20 +70,16 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function SetDetailPage({ params }: Props) {
   const { slug } = await params;
 
-  // Was this slug redirected because the set was merged? Follow the chain.
+  // Belt-and-suspenders: generateMetadata already redirects, but if the
+  // metadata path was bypassed for any reason, catch it here too.
   const redirectSlug = await resolveSlugRedirect(slug);
-  console.log(
-    `[sets/[slug]] slug="${slug}" resolveSlugRedirect -> ${redirectSlug}`
-  );
   if (redirectSlug && redirectSlug !== slug) {
     permanentRedirect(`/sets/${redirectSlug}`);
   }
 
   const set = await getSetBySlug(slug);
   if (!set) notFound();
-  console.log(`[sets/[slug]] set.status="${set.status}" id=${set.id}`);
-  // Merged sets never render even on a direct slug hit — the redirect above
-  // should have caught it; if not, the data is broken, don't expose it.
+  // Merged sets never render on a direct slug hit — data integrity fallback.
   if (set.status === "merged") notFound();
 
   const session = await auth();
