@@ -2,6 +2,7 @@ import { db } from "@/lib/db";
 import { scraperRuns } from "@/lib/db/schema";
 import { eq, sql } from "drizzle-orm";
 import { upsertEvent } from "./upsert";
+import { archiveRawPayload } from "./raw-archive";
 import type { Scraper, ScraperStats } from "./types";
 
 const STATS_FLUSH_INTERVAL = 25;
@@ -41,6 +42,24 @@ export class ScraperRunner {
 
       for (const raw of rawItems) {
         try {
+          for (const p of scraper.extractRawPayloads(raw)) {
+            try {
+              await archiveRawPayload({
+                scraperName: scraper.name,
+                entityType: p.entityType,
+                externalId: p.externalId,
+                raw: p.payload,
+                scraperRunId: runId,
+              });
+            } catch (archiveErr) {
+              // Archive failure must not abort the normalize + upsert path
+              console.error(
+                `[${scraper.name}] Failed to archive ${p.entityType} ${p.externalId}:`,
+                archiveErr
+              );
+            }
+          }
+
           const normalized = scraper.normalize(raw);
           if (!normalized) {
             stats.skipped++;

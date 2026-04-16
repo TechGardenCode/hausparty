@@ -66,3 +66,30 @@ describe("EdmtrainScraper.normalize", () => {
     expect(result!.name).toBe("Tomorrowland Winter");
   });
 });
+
+describe("EdmtrainScraper.extractRawPayloads", () => {
+  it("emits an event payload plus one artist payload per artist", () => {
+    const payloads = scraper.extractRawPayloads(events[0]);
+    const types = payloads.map((p) => p.entityType);
+    expect(types).toContain("event");
+    expect(types.filter((t) => t === "artist")).toHaveLength(events[0].artistList!.length);
+    const eventPayload = payloads.find((p) => p.entityType === "event");
+    expect(eventPayload?.externalId).toBe("edmtrain-event-100001");
+    expect(eventPayload?.payload).toBe(events[0]);
+  });
+
+  it("emits a venue payload when venue has an id", () => {
+    const payloads = scraper.extractRawPayloads(events[0]);
+    const venuePayload = payloads.find((p) => p.entityType === "venue");
+    if (events[0].venue?.id) {
+      expect(venuePayload).toBeDefined();
+      expect(venuePayload?.externalId).toBe(`edmtrain-venue-${events[0].venue.id}`);
+    }
+  });
+
+  it("emits only the event payload when artistList is empty", () => {
+    const payloads = scraper.extractRawPayloads(events[3]);
+    expect(payloads.some((p) => p.entityType === "artist")).toBe(false);
+    expect(payloads.some((p) => p.entityType === "event")).toBe(true);
+  });
+});

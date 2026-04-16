@@ -1,4 +1,4 @@
-import type { Scraper, NormalizedEvent, NormalizedArtist } from "./types";
+import type { Scraper, NormalizedEvent, NormalizedArtist, RawPayload } from "./types";
 
 export interface EdmtrainArtist {
   id: number;
@@ -72,6 +72,31 @@ export class EdmtrainScraper implements Scraper<EdmtrainRawEvent> {
     }
 
     return json.data ?? [];
+  }
+
+  extractRawPayloads(raw: EdmtrainRawEvent): RawPayload[] {
+    const payloads: RawPayload[] = [
+      {
+        entityType: "event",
+        externalId: `edmtrain-event-${raw.id}`,
+        payload: raw,
+      },
+    ];
+    for (const artist of raw.artistList ?? []) {
+      payloads.push({
+        entityType: "artist",
+        externalId: `edmtrain-artist-${artist.id}`,
+        payload: artist,
+      });
+    }
+    if (raw.venue?.id) {
+      payloads.push({
+        entityType: "venue",
+        externalId: `edmtrain-venue-${raw.venue.id}`,
+        payload: raw.venue,
+      });
+    }
+    return payloads;
   }
 
   normalize(raw: EdmtrainRawEvent): NormalizedEvent | null {

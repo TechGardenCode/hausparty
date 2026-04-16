@@ -357,6 +357,33 @@ export const scraperEntityMap = pgTable(
   ]
 );
 
+export const scraperRawPayloads = pgTable(
+  "scraper_raw_payloads",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    scraperName: text("scraper_name").notNull(),
+    entityType: text("entity_type").notNull(),
+    externalId: text("external_id").notNull(),
+    rawJson: jsonb("raw_json").notNull(),
+    fetchedAt: timestamp("fetched_at", { withTimezone: true }).notNull().defaultNow(),
+    scraperRunId: uuid("scraper_run_id").references(() => scraperRuns.id, { onDelete: "set null" }),
+  },
+  (t) => [
+    uniqueIndex("scraper_raw_payloads_unique").on(
+      t.scraperName,
+      t.entityType,
+      t.externalId,
+      t.fetchedAt
+    ),
+    index("scraper_raw_payloads_lookup_idx").on(
+      t.scraperName,
+      t.entityType,
+      t.externalId,
+      t.fetchedAt
+    ),
+  ]
+);
+
 // ============================================================
 // USER REPORTS
 // ============================================================

@@ -2,6 +2,7 @@ import { Download, CheckCircle, XCircle, Loader2, Clock } from "lucide-react";
 import { getScraperRuns, getScraperOverview } from "@/lib/queries/admin";
 import { scraperRegistry } from "@/lib/services/scrapers/registry";
 import { RunScraperForm } from "./run-scraper-form";
+import { ReplayButton } from "./replay-button";
 import type { Metadata } from "next";
 import type { ScraperRun } from "@/lib/types/database";
 
@@ -100,6 +101,7 @@ export default async function ScrapersPage() {
                   Last run: {formatDate(data.lastRun.startedAt)}
                 </p>
               )}
+              <ReplayButton scraperName={entry.name} />
             </div>
           );
         })}

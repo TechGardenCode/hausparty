@@ -24,8 +24,15 @@ export interface NormalizedEvent {
   isLivestream?: boolean;
 }
 
+export interface RawPayload {
+  entityType: string;
+  externalId: string;
+  payload: unknown;
+}
+
 export interface Scraper<TRaw = unknown> {
   readonly name: string;
   fetch(params: Record<string, string>): Promise<TRaw[]>;
+  extractRawPayloads(raw: TRaw): RawPayload[];
   normalize(raw: TRaw): NormalizedEvent | null;
 }

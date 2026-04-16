@@ -7,6 +7,7 @@ import { scraperRuns } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { getScraperByName } from "@/lib/services/scrapers/registry";
 import { ScraperRunner } from "@/lib/services/scrapers/runner";
+import { replayFromArchive } from "@/lib/services/scrapers/raw-archive";
 import type { ScraperStats } from "@/lib/services/scrapers/types";
 
 /**
@@ -88,4 +89,53 @@ export async function getScraperRunStatus(runId: string): Promise<{
     completedAt: run.completedAt,
     errorMessage: run.errorMessage,
   };
+}
+
+/**
+ * Replay the latest raw payloads for a scraper through normalize + upsert.
+ * Idempotent — scraperEntityMap + slug uniqueness prevent duplicates.
+ */
+export async function replayScraperFromArchive(
+  scraperName: string,
+  entityType: string = "event"
+): Promise<{ runId: string }> {
+  await requireAdmin();
+
+  const entry = getScraperByName(scraperName);
+  if (!entry) {
+    throw new Error(`Unknown scraper: ${scraperName}`);
+  }
+
+  const [run] = await db
+    .insert(scraperRuns)
+    .values({
+      scraperName,
+      status: "running",
+      params: { replaySource: true, entityType },
+    })
+    .returning({ id: scraperRuns.id });
+
+  replayFromArchive({
+    scraperName,
+    entityType,
+    scraperRunId: run.id,
+  })
+    .then(() => {
+      revalidatePath("/admin/scrapers");
+      revalidatePath("/admin");
+    })
+    .catch(async (error) => {
+      console.error(`[${scraperName}] Background replay failed:`, error);
+      const message = error instanceof Error ? error.message : "Unknown error";
+      await db
+        .update(scraperRuns)
+        .set({
+          status: "failed",
+          completedAt: new Date(),
+          errorMessage: message,
+        })
+        .where(eq(scraperRuns.id, run.id));
+    });
+
+  return { runId: run.id };
 }

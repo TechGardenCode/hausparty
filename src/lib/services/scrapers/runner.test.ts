@@ -8,6 +8,12 @@ vi.mock("./upsert", () => ({
   upsertEvent: (...args: unknown[]) => mockUpsertEvent(...args),
 }));
 
+// Mock raw-archive module so runner unit tests don't hit the db insert path.
+const mockArchiveRawPayload = vi.fn().mockResolvedValue(undefined);
+vi.mock("./raw-archive", () => ({
+  archiveRawPayload: (...args: unknown[]) => mockArchiveRawPayload(...args),
+}));
+
 // ---- Drizzle db mock for scraper_runs operations ----
 const insertedRuns: unknown[] = [];
 const updatedRuns: { values: unknown; runId: string }[] = [];
@@ -94,6 +100,13 @@ describe("ScraperRunner", () => {
   const mockScraper: Scraper = {
     name: "test-scraper",
     fetch: vi.fn().mockResolvedValue([{ id: 1 }, { id: 2 }]),
+    extractRawPayloads: vi.fn((raw: unknown) => [
+      {
+        entityType: "event",
+        externalId: `test-event-${(raw as { id: number }).id}`,
+        payload: raw,
+      },
+    ]),
     normalize: vi.fn().mockReturnValue(normalizedEvent),
   };
 
@@ -103,8 +116,18 @@ describe("ScraperRunner", () => {
     updatedRuns.length = 0;
     runIdCounter = 0;
     mockExecute.mockResolvedValue(undefined);
+    mockArchiveRawPayload.mockResolvedValue(undefined);
     mockUpsertEvent.mockResolvedValue({ action: "created", eventId: "evt-1" });
     (mockScraper.fetch as ReturnType<typeof vi.fn>).mockResolvedValue([{ id: 1 }, { id: 2 }]);
+    (mockScraper.extractRawPayloads as ReturnType<typeof vi.fn>).mockImplementation(
+      (raw: unknown) => [
+        {
+          entityType: "event",
+          externalId: `test-event-${(raw as { id: number }).id}`,
+          payload: raw,
+        },
+      ]
+    );
     (mockScraper.normalize as ReturnType<typeof vi.fn>).mockReturnValue(normalizedEvent);
   });
 
@@ -164,5 +187,57 @@ describe("ScraperRunner", () => {
     await runner.run(mockScraper, {});
 
     expect(mockExecute).not.toHaveBeenCalled();
+  });
+
+  it("archives raw payloads before normalize for every item", async () => {
+    const runner = new ScraperRunner();
+    await runner.run(mockScraper, {});
+
+    expect(mockScraper.extractRawPayloads).toHaveBeenCalledTimes(2);
+    expect(mockArchiveRawPayload).toHaveBeenCalledTimes(2);
+    expect(mockArchiveRawPayload).toHaveBeenCalledWith(
+      expect.objectContaining({
+        scraperName: "test-scraper",
+        entityType: "event",
+        externalId: "test-event-1",
+      })
+    );
+  });
+
+  it("treats archive failures as non-fatal and still normalizes", async () => {
+    mockArchiveRawPayload.mockRejectedValueOnce(new Error("archive exploded"));
+
+    const runner = new ScraperRunner();
+    const result = await runner.run(mockScraper, {});
+
+    expect(result.stats.created).toBe(2);
+    expect(result.stats.errors).toBe(0);
+    expect(mockScraper.normalize).toHaveBeenCalledTimes(2);
+  });
+
+  it("archives every payload returned by extractRawPayloads", async () => {
+    (mockScraper.extractRawPayloads as ReturnType<typeof vi.fn>).mockImplementation(
+      (raw: unknown) => [
+        {
+          entityType: "event",
+          externalId: `test-event-${(raw as { id: number }).id}`,
+          payload: raw,
+        },
+        {
+          entityType: "artist",
+          externalId: `test-artist-${(raw as { id: number }).id}`,
+          payload: { id: `a${(raw as { id: number }).id}` },
+        },
+      ]
+    );
+
+    const runner = new ScraperRunner();
+    await runner.run(mockScraper, {});
+
+    expect(mockArchiveRawPayload).toHaveBeenCalledTimes(4);
+    const entityTypes = mockArchiveRawPayload.mock.calls.map(
+      (call) => (call[0] as { entityType: string }).entityType
+    );
+    expect(entityTypes.sort()).toEqual(["artist", "artist", "event", "event"]);
   });
 });
