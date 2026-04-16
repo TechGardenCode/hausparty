@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Loader2, Search, AlertTriangle, CheckCircle } from "lucide-react";
@@ -51,9 +51,13 @@ export function SetMergeForm({ from, suggestedTarget }: Props) {
   async function pickTarget(target: { id: string; title: string; slug: string }) {
     setSelected(target);
     setPreview(null);
+    await loadPreview(target.id);
+  }
+
+  async function loadPreview(targetId: string) {
     setPreviewing(true);
     try {
-      const p = await previewMerge(from.id, target.id);
+      const p = await previewMerge(from.id, targetId);
       setPreview(p);
     } catch (err) {
       toast(err instanceof Error ? err.message : "Preview failed", "error");
@@ -61,6 +65,16 @@ export function SetMergeForm({ from, suggestedTarget }: Props) {
       setPreviewing(false);
     }
   }
+
+  // When the page loads with a suggested target (the from-set has a
+  // merge_candidate_for pointer) auto-load the preview so the admin
+  // doesn't have to click anything to see what moves.
+  useEffect(() => {
+    if (suggestedTarget && !preview && !previewing) {
+      void loadPreview(suggestedTarget.id);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   function confirmMerge() {
     if (!selected) return;
