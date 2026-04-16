@@ -42,8 +42,16 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   const session = await auth();
+  const sentryDsn = process.env.NEXT_PUBLIC_SENTRY_DSN ?? "";
   return (
     <html lang="en" className="dark">
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `window.__ENV=${JSON.stringify({ SENTRY_DSN: sentryDsn }).replace(/</g, "\\u003c")};`,
+          }}
+        />
+      </head>
       <body
         className={`${inter.variable} ${jetbrainsMono.variable} antialiased`}
       >
