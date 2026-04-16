@@ -83,11 +83,21 @@ export async function getSubmissions(filters?: { status?: string }) {
 export async function getAdminSets(
   page: number,
   pageSize: number,
-  statusFilter?: "draft" | "published"
+  statusFilter?: "draft" | "published" | "merged",
+  filters?: { mergeCandidatesOnly?: boolean }
 ) {
   const offset = (page - 1) * pageSize;
 
-  const whereClause = statusFilter ? eq(sets.status, statusFilter) : undefined;
+  const clauses = [];
+  if (statusFilter) clauses.push(eq(sets.status, statusFilter));
+  if (filters?.mergeCandidatesOnly)
+    clauses.push(sql`${sets.mergeCandidateFor} IS NOT NULL`);
+  const whereClause =
+    clauses.length === 0
+      ? undefined
+      : clauses.length === 1
+        ? clauses[0]
+        : and(...clauses);
 
   const [totalResult] = await db
     .select({ count: count() })

@@ -1,7 +1,12 @@
-import { notFound } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
 import Link from "next/link";
 import { Calendar, MapPin, Clock } from "lucide-react";
-import { getSetBySlug, getSetsByArtist, getSetsByEvent } from "@/lib/queries/sets";
+import {
+  getSetBySlug,
+  getSetsByArtist,
+  getSetsByEvent,
+  resolveSlugRedirect,
+} from "@/lib/queries/sets";
 import { isSetSaved, getCollectionsWithSetStatus } from "@/lib/queries/library";
 import { getUserSettings } from "@/lib/queries/user";
 import { auth } from "@/lib/auth";
@@ -54,8 +59,18 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function SetDetailPage({ params }: Props) {
   const { slug } = await params;
+
+  // Was this slug redirected because the set was merged? Follow the chain.
+  const redirectSlug = await resolveSlugRedirect(slug);
+  if (redirectSlug && redirectSlug !== slug) {
+    permanentRedirect(`/sets/${redirectSlug}`);
+  }
+
   const set = await getSetBySlug(slug);
   if (!set) notFound();
+  // Merged sets never render even on a direct slug hit — the redirect above
+  // should have caught it; if not, the data is broken, don't expose it.
+  if (set.status === "merged") notFound();
 
   const session = await auth();
   const user = session?.user ?? null;

@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Pencil } from "lucide-react";
+import { Pencil, GitMerge } from "lucide-react";
 import { AdminPagination } from "@/components/admin-pagination";
 import { ScrollableTable } from "@/components/scrollable-table";
 import { formatRelativeDate } from "@/lib/utils";
@@ -14,7 +14,7 @@ type SetRow = {
   id: string;
   title: string;
   slug: string;
-  status: "draft" | "published";
+  status: "draft" | "published" | "merged";
   created_at: Date;
   performed_at: Date | null;
   artists: { id: string; name: string; slug: string }[];
@@ -31,10 +31,11 @@ interface Props {
   currentPage: number;
   totalPages: number;
   allGenres: GenreOption[];
-  statusFilter?: "draft" | "published";
+  statusFilter?: "draft" | "published" | "merged";
+  mergeCandidatesOnly?: boolean;
 }
 
-export function SetsTable({ sets, total, currentPage, totalPages, allGenres, statusFilter }: Props) {
+export function SetsTable({ sets, total, currentPage, totalPages, allGenres, statusFilter, mergeCandidatesOnly }: Props) {
   const router = useRouter();
   const { toast } = useToast();
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -107,6 +108,23 @@ export function SetsTable({ sets, total, currentPage, totalPages, allGenres, sta
     const params = new URLSearchParams();
     if (page > 1) params.set("page", String(page));
     if (statusFilter) params.set("status", statusFilter);
+    if (mergeCandidatesOnly) params.set("candidate", "1");
+    const qs = params.toString();
+    return `/admin/sets${qs ? `?${qs}` : ""}`;
+  }
+
+  function tabHref(value?: string) {
+    const params = new URLSearchParams();
+    if (value) params.set("status", value);
+    if (mergeCandidatesOnly) params.set("candidate", "1");
+    const qs = params.toString();
+    return `/admin/sets${qs ? `?${qs}` : ""}`;
+  }
+
+  function candidateToggleHref() {
+    const params = new URLSearchParams();
+    if (statusFilter) params.set("status", statusFilter);
+    if (!mergeCandidatesOnly) params.set("candidate", "1");
     const qs = params.toString();
     return `/admin/sets${qs ? `?${qs}` : ""}`;
   }
@@ -118,16 +136,17 @@ export function SetsTable({ sets, total, currentPage, totalPages, allGenres, sta
         <span className="text-sm text-text-tertiary">{total} total</span>
       </div>
 
-      {/* Status filter tabs */}
-      <div className="flex gap-2">
+      {/* Status filter tabs + merge-candidate toggle */}
+      <div className="flex flex-wrap items-center gap-2">
         {[
           { label: "All", value: undefined },
           { label: "Published", value: "published" as const },
           { label: "Draft", value: "draft" as const },
+          { label: "Merged", value: "merged" as const },
         ].map((tab) => (
           <Link
             key={tab.label}
-            href={tab.value ? `/admin/sets?status=${tab.value}` : "/admin/sets"}
+            href={tabHref(tab.value)}
             className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
               statusFilter === tab.value
                 ? "bg-accent-primary/20 text-accent-primary"
@@ -137,6 +156,18 @@ export function SetsTable({ sets, total, currentPage, totalPages, allGenres, sta
             {tab.label}
           </Link>
         ))}
+        <div className="mx-1 h-4 w-px bg-border-subtle" />
+        <Link
+          href={candidateToggleHref()}
+          className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
+            mergeCandidatesOnly
+              ? "bg-accent-warm/20 text-accent-warm"
+              : "text-text-secondary hover:bg-bg-surface-hover hover:text-text-primary"
+          }`}
+        >
+          <GitMerge className="h-3.5 w-3.5" />
+          Merge candidates only
+        </Link>
       </div>
 
       {/* Bulk action bar */}
@@ -241,7 +272,9 @@ export function SetsTable({ sets, total, currentPage, totalPages, allGenres, sta
                     className={`rounded-full px-2 py-0.5 text-xs font-medium ${
                       set.status === "published"
                         ? "bg-accent-positive/15 text-accent-positive"
-                        : "bg-accent-warm/15 text-accent-warm"
+                        : set.status === "merged"
+                          ? "bg-text-tertiary/15 text-text-tertiary"
+                          : "bg-accent-warm/15 text-accent-warm"
                     }`}
                   >
                     {set.status}
@@ -271,14 +304,26 @@ export function SetsTable({ sets, total, currentPage, totalPages, allGenres, sta
                   {formatRelativeDate(set.created_at)}
                 </td>
                 <td className="py-3 pl-2 pr-4">
-                  <Link
-                    href={`/admin/sets/${set.id}/edit`}
-                    className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-text-tertiary transition-colors hover:bg-bg-surface-hover hover:text-accent-primary"
-                    title="Edit"
-                    aria-label="Edit set"
-                  >
-                    <Pencil className="h-4 w-4" />
-                  </Link>
+                  <div className="flex items-center gap-1">
+                    <Link
+                      href={`/admin/sets/${set.id}/edit`}
+                      className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-text-tertiary transition-colors hover:bg-bg-surface-hover hover:text-accent-primary"
+                      title="Edit"
+                      aria-label="Edit set"
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </Link>
+                    {set.status !== "merged" && (
+                      <Link
+                        href={`/admin/sets/${set.id}/merge`}
+                        className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-text-tertiary transition-colors hover:bg-bg-surface-hover hover:text-accent-warm"
+                        title="Merge"
+                        aria-label="Merge set"
+                      >
+                        <GitMerge className="h-4 w-4" />
+                      </Link>
+                    )}
+                  </div>
                 </td>
               </tr>
             ))}

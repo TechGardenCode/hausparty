@@ -1,7 +1,39 @@
 import { db } from "@/lib/db";
-import { sets, setArtists, setGenres } from "@/lib/db/schema";
+import { sets, setArtists, setGenres, setSlugRedirects } from "@/lib/db/schema";
 import { eq, desc, asc, inArray, and } from "drizzle-orm";
 import { getYouTubeThumbnail } from "@/lib/utils";
+
+const MAX_REDIRECT_HOPS = 5;
+
+/**
+ * Resolve an incoming slug through set_slug_redirects + the merged_into_set_id
+ * chain. Returns the canonical slug if the input was redirected, null if the
+ * slug has no redirect (caller falls through to normal lookup).
+ */
+export async function resolveSlugRedirect(slug: string): Promise<string | null> {
+  const [redirect] = await db
+    .select({ newSetId: setSlugRedirects.newSetId })
+    .from(setSlugRedirects)
+    .where(eq(setSlugRedirects.oldSlug, slug))
+    .limit(1);
+  if (!redirect) return null;
+
+  let currentId: string | null = redirect.newSetId;
+  for (let hop = 0; hop < MAX_REDIRECT_HOPS && currentId; hop++) {
+    const [row]: { slug: string; mergedIntoSetId: string | null }[] = await db
+      .select({
+        slug: sets.slug,
+        mergedIntoSetId: sets.mergedIntoSetId,
+      })
+      .from(sets)
+      .where(eq(sets.id, currentId))
+      .limit(1);
+    if (!row) return null;
+    if (!row.mergedIntoSetId) return row.slug;
+    currentId = row.mergedIntoSetId;
+  }
+  return null;
+}
 
 const setWithRelations = {
   setArtists: { with: { artist: true } },

@@ -25,7 +25,7 @@ export const mediaTypeEnum = pgEnum("media_type", ["video", "audio"]);
 export const followTargetEnum = pgEnum("follow_target", ["artist", "festival", "genre"]);
 export const submissionStatusEnum = pgEnum("submission_status", ["pending", "approved", "rejected"]);
 export const userRoleEnum = pgEnum("user_role", ["viewer", "artist", "festival_manager", "site_admin"]);
-export const setStatusEnum = pgEnum("set_status", ["draft", "published"]);
+export const setStatusEnum = pgEnum("set_status", ["draft", "published", "merged"]);
 export const scraperStatusEnum = pgEnum("scraper_status", ["running", "completed", "failed"]);
 export const reportTypeEnum = pgEnum("report_type", [
   "wrong_artist", "missing_artist", "wrong_event", "wrong_title",
@@ -132,6 +132,9 @@ export const sets = pgTable(
     mergeCandidateFor: uuid("merge_candidate_for").references((): AnyPgColumn => sets.id, {
       onDelete: "set null",
     }),
+    mergedIntoSetId: uuid("merged_into_set_id").references((): AnyPgColumn => sets.id, {
+      onDelete: "set null",
+    }),
     createdAt: timestamp("created_at").notNull().defaultNow(),
   },
   (t) => [
@@ -139,8 +142,19 @@ export const sets = pgTable(
     index("sets_merge_candidate_for_idx")
       .on(t.mergeCandidateFor)
       .where(sql`"merge_candidate_for" IS NOT NULL`),
+    index("sets_merged_into_idx")
+      .on(t.mergedIntoSetId)
+      .where(sql`"merged_into_set_id" IS NOT NULL`),
   ]
 );
+
+export const setSlugRedirects = pgTable("set_slug_redirects", {
+  oldSlug: text("old_slug").primaryKey(),
+  newSetId: uuid("new_set_id")
+    .notNull()
+    .references(() => sets.id, { onDelete: "cascade" }),
+  mergedAt: timestamp("merged_at", { withTimezone: true }).notNull().defaultNow(),
+});
 
 export const setArtists = pgTable(
   "set_artists",
