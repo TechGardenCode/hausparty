@@ -1,6 +1,7 @@
 import { RateLimiterRedis, RateLimiterRes } from "rate-limiter-flexible";
 import type { NextRequest } from "next/server";
 import { getRedis } from "./redis";
+import { rateLimitDecisionsTotal } from "./metrics";
 
 export interface LimiterSpec {
   keyPrefix: string;
@@ -56,10 +57,12 @@ export async function checkLimit(
 ): Promise<LimitResult> {
   const limiter = getLimiter(spec);
   if (!limiter) {
+    rateLimitDecisionsTotal.inc({ spec: spec.keyPrefix, outcome: "errored" });
     return { allowed: true, remaining: -1, resetAt: 0, retryAfterMs: 0 };
   }
   try {
     const res = await limiter.consume(subject, 1);
+    rateLimitDecisionsTotal.inc({ spec: spec.keyPrefix, outcome: "allowed" });
     return {
       allowed: true,
       remaining: res.remainingPoints,
@@ -68,6 +71,7 @@ export async function checkLimit(
     };
   } catch (err) {
     if (err instanceof RateLimiterRes) {
+      rateLimitDecisionsTotal.inc({ spec: spec.keyPrefix, outcome: "blocked" });
       return {
         allowed: false,
         remaining: 0,
@@ -76,6 +80,7 @@ export async function checkLimit(
       };
     }
     // Redis unreachable or unexpected error — fail open.
+    rateLimitDecisionsTotal.inc({ spec: spec.keyPrefix, outcome: "errored" });
     console.error("[rate-limit] unexpected error:", err);
     return { allowed: true, remaining: -1, resetAt: 0, retryAfterMs: 0 };
   }

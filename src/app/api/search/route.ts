@@ -7,6 +7,7 @@ import {
   rateLimitHeaders,
   type LimiterSpec,
 } from "@/lib/rate-limit";
+import { measureHandler } from "@/lib/metrics";
 
 const MAX_QUERY_LENGTH = 100;
 const CONTROL_CHAR_RE = /[\x00-\x1F\x7F]/;
@@ -23,30 +24,32 @@ const SEARCH_AUTH: LimiterSpec = {
 };
 
 export async function GET(request: NextRequest) {
-  const user = await getCurrentUser();
-  const spec = user ? SEARCH_AUTH : SEARCH_UNAUTH;
-  const subject = user ? user.id : clientIp(request);
+  return measureHandler("/api/search", "GET", async () => {
+    const user = await getCurrentUser();
+    const spec = user ? SEARCH_AUTH : SEARCH_UNAUTH;
+    const subject = user ? user.id : clientIp(request);
 
-  const limit = await checkLimit(spec, subject);
-  const headers = rateLimitHeaders(spec, limit);
-  if (!limit.allowed) {
-    return NextResponse.json(
-      { error: "rate limited" },
-      { status: 429, headers },
-    );
-  }
+    const limit = await checkLimit(spec, subject);
+    const headers = rateLimitHeaders(spec, limit);
+    if (!limit.allowed) {
+      return NextResponse.json(
+        { error: "rate limited" },
+        { status: 429, headers },
+      );
+    }
 
-  const q = request.nextUrl.searchParams.get("q")?.trim();
-  if (!q || q.length < 2) {
-    return NextResponse.json(
-      { sets: [], artists: [], festivals: [] },
-      { headers },
-    );
-  }
-  if (q.length > MAX_QUERY_LENGTH || CONTROL_CHAR_RE.test(q)) {
-    return NextResponse.json({ error: "invalid query" }, { status: 400, headers });
-  }
+    const q = request.nextUrl.searchParams.get("q")?.trim();
+    if (!q || q.length < 2) {
+      return NextResponse.json(
+        { sets: [], artists: [], festivals: [] },
+        { headers },
+      );
+    }
+    if (q.length > MAX_QUERY_LENGTH || CONTROL_CHAR_RE.test(q)) {
+      return NextResponse.json({ error: "invalid query" }, { status: 400, headers });
+    }
 
-  const results = await typeaheadSearch(q);
-  return NextResponse.json(results, { headers });
+    const results = await typeaheadSearch(q);
+    return NextResponse.json(results, { headers });
+  });
 }
