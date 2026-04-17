@@ -39,6 +39,7 @@ describe("use-resume localStorage utils", () => {
     setTitle: "Artist — Event 2024",
     thumbnailUrl: null,
     platform: "youtube",
+    sourceId: "00000000-0000-0000-0000-000000000001",
     positionSeconds: 123,
     updatedAt: Date.now(),
   };

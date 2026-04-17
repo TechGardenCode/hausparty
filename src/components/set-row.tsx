@@ -13,6 +13,7 @@ interface SetRowProps {
   platform?: Platform;
   sourceCount?: number;
   thumbnailUrl?: string | null;
+  trailingLabel?: string | null;
 }
 
 export function SetRow({
@@ -24,6 +25,7 @@ export function SetRow({
   platform,
   sourceCount,
   thumbnailUrl,
+  trailingLabel,
 }: SetRowProps) {
   return (
     <Link
@@ -80,6 +82,11 @@ export function SetRow({
         {durationSeconds && (
           <span className="font-mono text-xs text-text-tertiary">
             {formatDuration(durationSeconds)}
+          </span>
+        )}
+        {trailingLabel && (
+          <span className="hidden text-xs text-text-tertiary sm:inline">
+            {trailingLabel}
           </span>
         )}
       </div>

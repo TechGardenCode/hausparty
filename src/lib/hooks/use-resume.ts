@@ -10,6 +10,7 @@ export interface ResumeEntry {
   setTitle: string;
   thumbnailUrl: string | null;
   platform: "youtube" | "soundcloud";
+  sourceId: string;
   positionSeconds: number;
   updatedAt: number;
 }
@@ -24,6 +25,7 @@ export function readResume(): ResumeEntry | null {
       !parsed.setSlug ||
       !parsed.setTitle ||
       !parsed.platform ||
+      !parsed.sourceId ||
       typeof parsed.positionSeconds !== "number" ||
       typeof parsed.updatedAt !== "number"
     ) {

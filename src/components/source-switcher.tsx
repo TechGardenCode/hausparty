@@ -28,10 +28,26 @@ export function SourceSwitcher({
   resumePositionSeconds = 0,
 }: SourceSwitcherProps) {
   const activeSources = sources.filter((s) => s.isActive);
-  const [activeIndex, setActiveIndex] = useState(0);
-  const current = activeSources[activeIndex];
   const { state: playerState, play } = usePlayer();
   const hasAutoPlayed = useRef(false);
+
+  // Pick the initial index by consulting the resume slot: if the user was
+  // last listening to a specific source on this set, land on that source
+  // rather than the default first-in-list. Falls back to platform match,
+  // then 0. Computed lazily so SSR renders with index=0 and the client
+  // corrects before the first paint.
+  const [activeIndex, setActiveIndex] = useState<number>(() => {
+    if (typeof window === "undefined") return 0;
+    const stored = readResume();
+    if (!stored || stored.setSlug !== setSlug) return 0;
+    const byId = activeSources.findIndex((s) => s.id === stored.sourceId);
+    if (byId >= 0) return byId;
+    const byPlatform = activeSources.findIndex(
+      (s) => s.platform === stored.platform
+    );
+    return byPlatform >= 0 ? byPlatform : 0;
+  });
+  const current = activeSources[activeIndex];
 
   // Auto-register with the global player only if nothing is currently playing.
   // This preserves the active set when browsing to other set pages.

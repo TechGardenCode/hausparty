@@ -228,6 +228,7 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
         setTitle: s.setTitle ?? s.setSlug,
         thumbnailUrl: s.thumbnailUrl,
         platform: s.source.platform,
+        sourceId: s.source.id,
         positionSeconds: position,
         updatedAt: Date.now(),
       };
