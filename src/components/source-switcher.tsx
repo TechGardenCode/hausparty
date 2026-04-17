@@ -28,10 +28,24 @@ export function SourceSwitcher({
   resumePositionSeconds = 0,
 }: SourceSwitcherProps) {
   const activeSources = sources.filter((s) => s.isActive);
-  const [activeIndex, setActiveIndex] = useState(0);
-  const current = activeSources[activeIndex];
+  const [localActiveIndex, setActiveIndex] = useState(0);
   const { state: playerState, play } = usePlayer();
   const hasAutoPlayed = useRef(false);
+
+  // Derived source highlight: when the global player is already playing this
+  // set (mini-player "back" nav, for example), the actually-playing source is
+  // the source of truth for which row should appear active in the Sources
+  // list — the local state might still be index 0 since the auto-play effect
+  // is short-circuited on non-idle state.
+  const playerIndexForThisSet =
+    playerState.status === "active" &&
+    playerState.setSlug === setSlug &&
+    playerState.source
+      ? activeSources.findIndex((s) => s.id === playerState.source!.id)
+      : -1;
+  const activeIndex =
+    playerIndexForThisSet >= 0 ? playerIndexForThisSet : localActiveIndex;
+  const current = activeSources[activeIndex];
 
   // Auto-register with the global player only if nothing is currently playing.
   // This preserves the active set when browsing to other set pages.

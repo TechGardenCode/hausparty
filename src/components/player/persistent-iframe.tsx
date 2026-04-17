@@ -30,6 +30,7 @@ export function PersistentIframe() {
         // Clear resume + fire `end` beacon, drop back to idle.
         stop();
       },
+      startSeconds: state.startPositionSeconds,
     })
       .then((bridge) => {
         if (disposed) {
@@ -54,7 +55,13 @@ export function PersistentIframe() {
         // ignore
       }
     };
-  }, [state.status, state.source, stop, registerPositionGetter]);
+  }, [
+    state.status,
+    state.source,
+    state.startPositionSeconds,
+    stop,
+    registerPositionGetter,
+  ]);
 
   if (state.status === "idle" || !state.source) return null;
 

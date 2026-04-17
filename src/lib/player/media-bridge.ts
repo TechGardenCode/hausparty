@@ -31,6 +31,7 @@ interface YTConstructor {
 interface SCWidget {
   bind: (event: string, handler: (data?: unknown) => void) => void;
   unbind: (event: string) => void;
+  seekTo: (milliseconds: number) => void;
 }
 
 interface SCNamespace {
@@ -55,6 +56,13 @@ export interface MediaBridge {
 export interface MediaBridgeHandlers {
   onEnded?: () => void;
   onReady?: () => void;
+  /**
+   * Seconds to jump to once the underlying player is ready. YouTube's
+   * `start=` URL param handles this for us; SoundCloud ignores the `#t=Ns`
+   * hash when `SC.Widget()` wraps the iframe, so the bridge has to call
+   * `widget.seekTo()` explicitly.
+   */
+  startSeconds?: number;
 }
 
 let ytApiReady: Promise<void> | null = null;
@@ -170,6 +178,14 @@ export async function createMediaBridge(
     return new Promise<MediaBridge>((resolve) => {
       widget.bind(SC.Widget.Events.READY, () => {
         handlers.onReady?.();
+        if (handlers.startSeconds && handlers.startSeconds > 0) {
+          try {
+            widget.seekTo(Math.floor(handlers.startSeconds) * 1000);
+            lastKnownPosition = Math.floor(handlers.startSeconds);
+          } catch {
+            // widget not ready / older API — ignore, widget will start at 0
+          }
+        }
         widget.bind(SC.Widget.Events.PLAY_PROGRESS, (data) => {
           if (disposed) return;
           const payload = data as { currentPosition?: number } | undefined;
