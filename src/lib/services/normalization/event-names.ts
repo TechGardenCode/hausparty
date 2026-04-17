@@ -151,7 +151,7 @@ function resolveFestival(name: string, festivalHint?: string): string | null {
  * Extract a location from the event name that isn't the festival name or year.
  * e.g., "EDC Orlando 2025" → "Orlando"
  */
-function extractLocation(name: string, festivalName: string): string | null {
+function extractLocation(name: string, _festivalName: string): string | null {
   // Remove festival name and year from the string
   let remaining = name;
 

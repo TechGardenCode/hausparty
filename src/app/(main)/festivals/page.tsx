@@ -32,6 +32,7 @@ export default async function FestivalsPage() {
               {/* Hero image */}
               <div className="relative h-36">
                 {festival.imageUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element -- festival hero images come from arbitrary external hosts; remotePatterns would need every SC/YT/RA domain we encounter
                   <img
                     src={festival.imageUrl}
                     alt={festival.name}

@@ -126,6 +126,7 @@ export function ArtistEditorForm({ artist }: Props) {
               className="rounded border border-border-subtle bg-bg-primary px-3 py-2 text-sm text-text-primary placeholder:text-text-tertiary"
             />
             {imageUrl && (
+              // eslint-disable-next-line @next/next/no-img-element -- admin preview of an arbitrary user-entered URL; not worth adding every host to remotePatterns
               <img
                 src={imageUrl}
                 alt="Preview"

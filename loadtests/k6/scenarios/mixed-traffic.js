@@ -37,7 +37,7 @@ export const options = {
   summaryTrendStats: ["min", "med", "avg", "p(90)", "p(95)", "p(99)", "max"],
 };
 
-export default function () {
+export default function mixedTraffic() {
   const pickSearch = Math.random() < 0.5;
 
   if (pickSearch) {

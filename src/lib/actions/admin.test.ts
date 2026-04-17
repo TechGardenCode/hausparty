@@ -43,7 +43,7 @@ const mockExecute = vi.fn().mockResolvedValue(undefined);
 // getUserRole needs to return site_admin for requireAdmin to pass
 let userRoleResult: { role: string }[] = [{ role: "site_admin" }];
 let insertReturnValue = [{ id: "new-id", name: "Test", slug: "test" }];
-let selectCount = 0;
+let _selectCount = 0;
 
 function createChainProxy(op: string): unknown {
   return new Proxy(function () {}, {
@@ -54,7 +54,7 @@ function createChainProxy(op: string): unknown {
         ops.push({ method: String(prop), args });
         // Terminal methods
         if (prop === "limit") {
-          selectCount++;
+          _selectCount++;
           // First select is getUserRole from requireAdmin
           return Promise.resolve(userRoleResult);
         }
@@ -113,7 +113,7 @@ describe("approveSubmission", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     ops.length = 0;
-    selectCount = 0;
+    _selectCount = 0;
     userRoleResult = [{ role: "site_admin" }];
     mockProcessSubmission.mockReset();
   });
@@ -150,7 +150,7 @@ describe("rejectSubmission", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     ops.length = 0;
-    selectCount = 0;
+    _selectCount = 0;
     userRoleResult = [{ role: "site_admin" }];
   });
 
@@ -164,7 +164,7 @@ describe("reprocessSubmission", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     ops.length = 0;
-    selectCount = 0;
+    _selectCount = 0;
     userRoleResult = [{ role: "site_admin" }];
     mockProcessSubmission.mockReset();
   });
@@ -192,7 +192,7 @@ describe("updateSet", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     ops.length = 0;
-    selectCount = 0;
+    _selectCount = 0;
     userRoleResult = [{ role: "site_admin" }];
   });
 
@@ -207,7 +207,7 @@ describe("updateSetArtists", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     ops.length = 0;
-    selectCount = 0;
+    _selectCount = 0;
     userRoleResult = [{ role: "site_admin" }];
   });
 
@@ -225,7 +225,7 @@ describe("updateSetGenres", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     ops.length = 0;
-    selectCount = 0;
+    _selectCount = 0;
     userRoleResult = [{ role: "site_admin" }];
   });
 
@@ -238,7 +238,7 @@ describe("createEvent", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     ops.length = 0;
-    selectCount = 0;
+    _selectCount = 0;
     userRoleResult = [{ role: "site_admin" }];
     insertReturnValue = [{ id: "new-id", name: "Ultra 2026", slug: "ultra-2026" }];
   });
@@ -253,7 +253,7 @@ describe("createGenre", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     ops.length = 0;
-    selectCount = 0;
+    _selectCount = 0;
     userRoleResult = [{ role: "site_admin" }];
     insertReturnValue = [{ id: "new-id", name: "Deep House", slug: "deep-house" }];
   });
@@ -268,7 +268,7 @@ describe("createArtist", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     ops.length = 0;
-    selectCount = 0;
+    _selectCount = 0;
     userRoleResult = [{ role: "site_admin" }];
     insertReturnValue = [{ id: "new-id", name: "Adam Beyer", slug: "adam-beyer" }];
   });
@@ -283,7 +283,7 @@ describe("bulkAssignGenre", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     ops.length = 0;
-    selectCount = 0;
+    _selectCount = 0;
     userRoleResult = [{ role: "site_admin" }];
   });
 
@@ -297,7 +297,7 @@ describe("refreshSearchIndex", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     ops.length = 0;
-    selectCount = 0;
+    _selectCount = 0;
     userRoleResult = [{ role: "site_admin" }];
   });
 

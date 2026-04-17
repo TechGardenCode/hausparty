@@ -7,8 +7,8 @@
  */
 
 import { db } from "@/lib/db";
-import { sets, setArtists, setGenres, sources, events, artistGenres } from "@/lib/db/schema";
-import { eq, isNull, sql, inArray } from "drizzle-orm";
+import { sets, setGenres, artistGenres } from "@/lib/db/schema";
+import { eq, sql, inArray } from "drizzle-orm";
 import { parseYouTubeTitle } from "@/lib/services/normalization/title-parser";
 
 export interface ReconciliationDelta {
@@ -57,7 +57,7 @@ export async function scanSet(setId: string): Promise<ReconciliationDelta[]> {
   // 1. Missing B2B — check source titles for b2b pattern
   const artistCount = set.setArtists?.length ?? 0;
   if (artistCount <= 1 && set.sources && set.sources.length > 0) {
-    for (const source of set.sources) {
+    for (const _source of set.sources) {
       // Re-fetch title via parsing the existing source URL's known title
       // We use the set title as proxy (it was set from OEmbed at creation)
       const parsed = parseYouTubeTitle(set.title);

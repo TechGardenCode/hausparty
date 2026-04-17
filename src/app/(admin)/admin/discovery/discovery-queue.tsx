@@ -1,10 +1,9 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
-  ExternalLink, Loader2, CheckCircle, XCircle, Search,
+  Loader2, CheckCircle, XCircle, Search,
   AlertTriangle, Eye, Users,
 } from "lucide-react";
 import { AdminPagination } from "@/components/admin-pagination";
@@ -328,6 +327,7 @@ function PreviewCard({
       {/* Video metadata */}
       <div className="flex gap-3">
         {preview.thumbnailUrl && (
+          // eslint-disable-next-line @next/next/no-img-element -- discovery preview thumbs span many host-families; admin-only, LCP not a concern
           <img
             src={preview.thumbnailUrl}
             alt=""

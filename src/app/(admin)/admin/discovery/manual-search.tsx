@@ -461,6 +461,7 @@ function PreviewCard({
 
       <div className="flex gap-3">
         {preview.thumbnailUrl && (
+          // eslint-disable-next-line @next/next/no-img-element -- discovery preview thumbs span many host-families; admin-only, LCP not a concern
           <img src={preview.thumbnailUrl} alt="" className="h-16 w-28 shrink-0 rounded object-cover" />
         )}
         <div className="flex flex-col gap-1 text-sm">

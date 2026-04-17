@@ -2,7 +2,6 @@ import Link from "next/link";
 import { Users } from "lucide-react";
 import { getBrowseArtists } from "@/lib/queries/artists";
 import { AdminPagination } from "@/components/admin-pagination";
-import { GenreChip } from "@/components/genre-chip";
 import { EmptyState } from "@/components/empty-state";
 import { ArtistSearch } from "./artist-search";
 import type { Metadata } from "next";
@@ -57,6 +56,7 @@ export default async function ArtistsPage({ searchParams }: Props) {
               {/* Avatar */}
               <div className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-full bg-accent-primary/10 sm:h-16 sm:w-16">
                 {artist.imageUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element -- artist avatars come from arbitrary external hosts; remotePatterns would need every SC/YT/RA domain we encounter
                   <img
                     src={artist.imageUrl}
                     alt={artist.name}

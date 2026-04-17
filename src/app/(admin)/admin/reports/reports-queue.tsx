@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useTransition } from "react";
 import Link from "next/link";
-import { Flag, CheckCircle, XCircle, Loader2 } from "lucide-react";
+import { Flag, CheckCircle, Loader2 } from "lucide-react";
 import { useToast } from "@/components/toast";
 import { getReports, resolveReport, dismissReport } from "@/lib/actions/reports";
 

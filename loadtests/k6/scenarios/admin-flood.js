@@ -26,7 +26,7 @@ export const options = {
   },
 };
 
-export default function () {
+export default function adminFlood() {
   // Target both admin endpoints — both should reject without the
   // ADMIN_API_KEY bearer token.
   const pickProcess = Math.random() < 0.5;

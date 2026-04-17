@@ -6,6 +6,33 @@ Most recent first.
 
 ---
 
+## 2026-04-17 — Quality audit stage 2: lint cleanup & type hygiene
+
+**Scope**
+- Drove `npm run lint` warnings from 35 → 0 via mechanical rule fixes.
+- Flipped `lint` to strict (`--max-warnings=0`) so any new warning breaks CI.
+
+**Changes**
+- `eslint.config.mjs` — added `@typescript-eslint/no-unused-vars` override with `argsIgnorePattern: '^_'`, `varsIgnorePattern: '^_'`, `caughtErrorsIgnorePattern: '^_'`. Closes the gap that Stage 2's plan assumed was already configured.
+- `package.json` — `lint` script is now `eslint --max-warnings=0`; both local and CI share one strict definition of clean. Stage 1's CI YAML needs no change.
+- 7 `<img>` warnings silenced with `eslint-disable-next-line @next/next/no-img-element` + a reason comment each. Image URLs come from arbitrary external hosts (artist avatars, festival heroes, discovery thumbs); whitelisting every SC/YT/RA subdomain would flake more than it saves.
+- 3 k6 anonymous default exports now named (`adminFlood`, `mixedTraffic`, `searchSpam`) — k6 ignores the name but ESLint now accepts the export.
+- Unused imports removed in: `discovery-queue.tsx` (`Link`, `ExternalLink`), `reports-queue.tsx` (`XCircle`), `artists/page.tsx` (`GenreChip`), `queries/artists.ts` (`sets`, `and`, `desc`), `healing/scanner.ts` (`setArtists`, `sources`, `events`, `isNull`).
+- Unused params/vars renamed with `_` prefix: `healing/scanner.ts` (`source` → `_source`), `event-names.ts` (`festivalName` → `_festivalName`), `admin.test.ts` (`selectCount` → `_selectCount`).
+
+**Non-goals honored**
+- No component logic refactored.
+- ESLint preset still `next/core-web-vitals + next/typescript`.
+- No remote image hosts added to `next.config.ts` — intentional.
+
+**Verification**
+- `npm run lint` (now strict) exits 0.
+- `npx tsc --noEmit` clean.
+- `npm run test` 373/373.
+- Remote verification pending: introduce a stray `console.log`, push, confirm CI fails.
+
+---
+
 ## 2026-04-17 — Quality audit stage 1: CI quality gate
 
 **Scope**

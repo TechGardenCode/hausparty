@@ -4,6 +4,30 @@ Decisions significant enough to affect future work. Each entry captures what was
 
 ---
 
+## 2026-04-17 — Quality-audit stage 2: lint conventions
+
+**Type:** engineering
+
+### Underscore-prefixed identifiers are the repo-wide "intentionally unused" signal
+
+**Decision:** `eslint.config.mjs` overrides `@typescript-eslint/no-unused-vars` with `argsIgnorePattern: '^_'`, `varsIgnorePattern: '^_'`, and `caughtErrorsIgnorePattern: '^_'`. Any identifier that starts with `_` is accepted as deliberately unused; every other unused binding is a lint error.
+
+**Why:** The `eslint-config-next/typescript` preset enables the rule at `warn` with no ignore pattern, which made `_args`-style test stubs and harness proxies flag noisily. The standard typescript-eslint idiom gives a clear single rule: want to keep the name for documentation / API compatibility / destructuring symmetry? Prefix with `_`. Otherwise, remove it.
+
+**Rejected:** Per-site `// eslint-disable-next-line` comments (noisy, accumulate unexplained); deleting the offending names outright (loses documentation value in test-harness proxy callbacks where the param shape matters).
+
+### Strict `--max-warnings=0` lives on the `lint` npm script, not in CI YAML
+
+**Decision:** `package.json` `lint` script is `eslint --max-warnings=0`. CI calls `npm run lint`, which is now inherently strict. No `--max-warnings=0` flag in `.github/workflows/ci.yml`.
+
+**Why:** Single definition of "clean lint" — devs running `npm run lint` locally get exactly the same signal as CI. If we ever need a looser local variant (unlikely), add `lint:permissive` rather than decoupling via flags in CI. Flags in CI invite drift: someone adds a pre-commit hook with the loose script and wonders why CI fails.
+
+**Rejected:** Per-plan-02 original wording, `npm run lint -- --max-warnings=0` in CI only. Two definitions of clean = drift waiting to happen.
+
+**Docs updated:** `docs/CHANGELOG.md` (stage 2 operational entry)
+
+---
+
 ## 2026-04-17 — Quality-audit stage 1: CI quality-gate policy
 
 **Type:** process / engineering

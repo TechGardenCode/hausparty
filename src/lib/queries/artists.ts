@@ -1,6 +1,6 @@
 import { db } from "@/lib/db";
-import { artists, setArtists, sets } from "@/lib/db/schema";
-import { eq, count, ilike, and, desc } from "drizzle-orm";
+import { artists, setArtists } from "@/lib/db/schema";
+import { eq, count, ilike } from "drizzle-orm";
 
 export async function getArtistBySlug(slug: string) {
   const data = await db.query.artists.findFirst({

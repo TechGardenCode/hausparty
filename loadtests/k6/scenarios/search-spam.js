@@ -30,7 +30,7 @@ export const options = {
   },
 };
 
-export default function () {
+export default function searchSpam() {
   const res = http.get(`${BASE_URL}/api/search?q=spam${__ITER % 10}`);
   rateLimited.add(res.status === 429);
   allowedThroughLimit.add(res.status === 200);

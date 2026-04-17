@@ -48,6 +48,7 @@ export default async function AdminFestivalsPage() {
                 </td>
                 <td className="py-3 pr-4">
                   {festival.image_url ? (
+                    // eslint-disable-next-line @next/next/no-img-element -- festival thumbs come from arbitrary external hosts; admin-only view, LCP not a concern
                     <img
                       src={festival.image_url}
                       alt=""
