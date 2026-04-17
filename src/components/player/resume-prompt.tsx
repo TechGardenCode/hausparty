@@ -34,7 +34,6 @@ export function ResumePrompt() {
       <Link
         href={`/sets/${entry.setSlug}?resume=${Math.max(0, Math.floor(entry.positionSeconds))}`}
         className="flex items-center gap-2 font-medium text-text-primary hover:text-accent-primary"
-        onClick={dismiss}
       >
         <Play className="h-4 w-4 fill-accent-primary text-accent-primary" />
         <span className="max-w-[40vw] truncate sm:max-w-xs">
