@@ -1,7 +1,9 @@
 FROM node:24-alpine AS deps
 WORKDIR /app
 COPY package.json package-lock.json ./
-RUN npm ci
+# See ci.yml "Install dependencies" — lockfile has wasm32-only optional
+# transitive refs that `npm ci` rejects. `npm install` still deterministic.
+RUN npm install --prefer-offline --no-audit --no-fund
 
 FROM node:24-alpine AS builder
 WORKDIR /app
