@@ -9,6 +9,7 @@ import {
 } from "@/lib/queries/sets";
 import { isSetSaved, getCollectionsWithSetStatus } from "@/lib/queries/library";
 import { getUserSettings } from "@/lib/queries/user";
+import { recordUserActivity } from "@/lib/actions/user-activity";
 import { auth } from "@/lib/auth";
 import { formatDuration } from "@/lib/utils";
 import { SourceSwitcher } from "@/components/source-switcher";
@@ -27,6 +28,7 @@ import type { Metadata } from "next";
 
 interface Props {
   params: Promise<{ slug: string }>;
+  searchParams?: Promise<{ resume?: string }>;
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
@@ -67,8 +69,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
-export default async function SetDetailPage({ params }: Props) {
+export default async function SetDetailPage({ params, searchParams }: Props) {
   const { slug } = await params;
+  const resolvedSearch = searchParams ? await searchParams : {};
+  const resumeSeconds = Math.max(0, Math.floor(Number(resolvedSearch.resume) || 0));
 
   // Belt-and-suspenders: generateMetadata already redirects, but if the
   // metadata path was bypassed for any reason, catch it here too.
@@ -91,6 +95,15 @@ export default async function SetDetailPage({ params }: Props) {
     user?.id ? getUserSettings(user.id) : { autoplay: false },
   ]);
 
+  if (user?.id) {
+    void recordUserActivity({
+      userId: user.id,
+      action: "view_set",
+      targetType: "set",
+      targetId: set.id,
+    });
+  }
+
   const firstArtist = set.artists[0];
   const [moreFromArtist, moreFromEvent] = await Promise.all([
     firstArtist ? getSetsByArtist(firstArtist.id) : [],
@@ -111,6 +124,7 @@ export default async function SetDetailPage({ params }: Props) {
         setTitle={`${artistNames} — ${set.event?.name || set.title}`}
         thumbnailUrl={set.thumbnailUrl}
         autoplay={settings.autoplay}
+        resumePositionSeconds={resumeSeconds}
       />
 
       {/* Header */}

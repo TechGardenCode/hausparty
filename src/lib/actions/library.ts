@@ -5,6 +5,7 @@ import { eq, and, count as countFn } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { savedSets, follows, collections, collectionSets } from "@/lib/db/schema";
 import { getCurrentUser } from "@/lib/auth-helpers";
+import { recordUserActivity } from "./user-activity";
 
 export async function toggleSaveSet(setId: string) {
   const user = await getCurrentUser();
@@ -23,6 +24,12 @@ export async function toggleSaveSet(setId: string) {
       .where(and(eq(savedSets.userId, user.id), eq(savedSets.setId, setId)));
   } else {
     await db.insert(savedSets).values({ userId: user.id, setId });
+    void recordUserActivity({
+      userId: user.id,
+      action: "save",
+      targetType: "set",
+      targetId: setId,
+    });
   }
 
   revalidatePath("/library");

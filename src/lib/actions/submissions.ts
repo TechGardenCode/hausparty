@@ -3,6 +3,7 @@
 import { db } from "@/lib/db";
 import { submissions } from "@/lib/db/schema";
 import { getCurrentUser } from "@/lib/auth-helpers";
+import { recordUserActivity } from "./user-activity";
 
 export async function submitSet(formData: FormData) {
   const user = await getCurrentUser();
@@ -24,7 +25,7 @@ export async function submitSet(formData: FormData) {
   const performedDateRaw = trimOrNull("performed_date");
 
   try {
-    await db.insert(submissions).values({
+    const [row] = await db.insert(submissions).values({
       userId: user.id,
       url,
       artistName: trimOrNull("artist_name"),
@@ -34,6 +35,12 @@ export async function submitSet(formData: FormData) {
       stage: trimOrNull("stage"),
       performedDate: performedDateRaw,
       description: trimOrNull("description"),
+    }).returning({ id: submissions.id });
+    void recordUserActivity({
+      userId: user.id,
+      action: "submit",
+      targetType: "submission",
+      targetId: row?.id ?? null,
     });
   } catch (err) {
     return { error: (err as Error).message };

@@ -15,6 +15,7 @@ interface SourceSwitcherProps {
   setTitle: string;
   thumbnailUrl: string | null;
   autoplay?: boolean;
+  resumePositionSeconds?: number;
 }
 
 export function SourceSwitcher({
@@ -23,6 +24,7 @@ export function SourceSwitcher({
   setTitle,
   thumbnailUrl,
   autoplay = false,
+  resumePositionSeconds = 0,
 }: SourceSwitcherProps) {
   const activeSources = sources.filter((s) => s.isActive);
   const [activeIndex, setActiveIndex] = useState(0);
@@ -41,17 +43,38 @@ export function SourceSwitcher({
     if (
       !hasAutoPlayed.current &&
       current &&
-      getEmbedUrl(current, autoplay) &&
+      getEmbedUrl(current, autoplay, resumePositionSeconds) &&
       playerState.status === "idle"
     ) {
       const isTouchOnly =
         typeof window !== "undefined" &&
         window.matchMedia("(hover: none) and (pointer: coarse)").matches;
-      const initialAutoplay = isTouchOnly ? false : autoplay;
-      play(current, setSlug, setTitle, thumbnailUrl, initialAutoplay);
+      // Resume always implies autoplay intent — the user just clicked "Resume".
+      const initialAutoplay = resumePositionSeconds > 0
+        ? true
+        : isTouchOnly
+          ? false
+          : autoplay;
+      play(
+        current,
+        setSlug,
+        setTitle,
+        thumbnailUrl,
+        initialAutoplay,
+        resumePositionSeconds
+      );
       hasAutoPlayed.current = true;
     }
-  }, [current, setSlug, setTitle, thumbnailUrl, play, playerState.status, autoplay]);
+  }, [
+    current,
+    setSlug,
+    setTitle,
+    thumbnailUrl,
+    play,
+    playerState.status,
+    autoplay,
+    resumePositionSeconds,
+  ]);
 
   if (!current) return null;
 

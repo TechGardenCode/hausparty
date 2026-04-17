@@ -3,6 +3,7 @@ import { MobileNav } from "@/components/mobile-nav";
 import { PlayerProvider } from "@/components/player/player-context";
 import { PersistentIframe } from "@/components/player/persistent-iframe";
 import { MiniPlayer } from "@/components/player/mini-player";
+import { ResumePrompt } from "@/components/player/resume-prompt";
 
 export default function MainLayout({
   children,
@@ -16,6 +17,7 @@ export default function MainLayout({
         <PersistentIframe />
         {children}
       </main>
+      <ResumePrompt />
       <MiniPlayer />
       <MobileNav />
     </PlayerProvider>

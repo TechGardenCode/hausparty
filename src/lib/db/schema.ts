@@ -32,6 +32,9 @@ export const reportTypeEnum = pgEnum("report_type", [
   "broken_source", "duplicate", "other",
 ]);
 export const reportStatusEnum = pgEnum("report_status", ["open", "resolved", "dismissed"]);
+export const userActionEnum = pgEnum("user_action", [
+  "view_set", "play", "save", "report", "submit",
+]);
 
 // ============================================================
 // CONTENT TABLES
@@ -335,6 +338,48 @@ export const userRoles = pgTable(
   ]
 );
 
+export const playEvents = pgTable(
+  "play_events",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id").notNull(),
+    setId: uuid("set_id")
+      .notNull()
+      .references(() => sets.id, { onDelete: "cascade" }),
+    sourceId: uuid("source_id").references(() => sources.id, { onDelete: "set null" }),
+    platform: platformEnum("platform").notNull(),
+    startedAt: timestamp("started_at", { withTimezone: true }).notNull(),
+    lastHeartbeatAt: timestamp("last_heartbeat_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    lastPositionSeconds: integer("last_position_seconds").notNull().default(0),
+    durationListenedSeconds: integer("duration_listened_seconds").notNull().default(0),
+  },
+  (t) => [
+    uniqueIndex("play_events_session_unique").on(t.userId, t.setId, t.startedAt),
+    index("play_events_user_recent_idx").on(t.userId, t.lastHeartbeatAt),
+    index("play_events_set_idx").on(t.setId),
+  ]
+);
+
+export const userActivity = pgTable(
+  "user_activity",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id").notNull(),
+    action: userActionEnum("action").notNull(),
+    targetType: text("target_type"),
+    targetId: uuid("target_id"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    index("user_activity_user_created_idx").on(t.userId, t.createdAt),
+    index("user_activity_target_idx").on(t.targetType, t.targetId),
+  ]
+);
+
 export const userSettings = pgTable("user_settings", {
   userId: uuid("user_id").primaryKey(),
   displayName: text("display_name"),
@@ -522,4 +567,9 @@ export const reportsRelations = relations(reports, ({ one }) => ({
 
 export const sourceSuggestionsRelations = relations(sourceSuggestions, ({ one }) => ({
   set: one(sets, { fields: [sourceSuggestions.setId], references: [sets.id] }),
+}));
+
+export const playEventsRelations = relations(playEvents, ({ one }) => ({
+  set: one(sets, { fields: [playEvents.setId], references: [sets.id] }),
+  source: one(sources, { fields: [playEvents.sourceId], references: [sources.id] }),
 }));

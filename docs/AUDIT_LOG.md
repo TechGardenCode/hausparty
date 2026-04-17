@@ -4,6 +4,44 @@ Decisions significant enough to affect future work. Each entry captures what was
 
 ---
 
+## 2026-04-16 — Plan 07: player continuity architecture
+
+### 7a. Position read via the iframe media APIs, wall-clock as fallback
+
+**Decision:** `PersistentIframe` wraps each mounted iframe with a `MediaBridge` that loads `https://www.youtube.com/iframe_api` (YouTube) or `https://w.soundcloud.com/player/api.js` (SoundCloud) on first use, registers a `getPosition()` getter with `PlayerProvider`, and subscribes to the "ended" lifecycle (`YT.PlayerState.ENDED` / `SC.Widget.Events.FINISH`). Heartbeats prefer the bridge getter; they fall back to wall-clock elapsed only during the ~300–800 ms window between iframe mount and the bridge's `onReady`. YouTube embeds include `enablejsapi=1`; SoundCloud widgets need no URL change.
+
+**Why:** The wall-clock approximation initially shipped (resume accurate, `duration_listened_seconds` inaccurate) is fine for pure resume-on-reload but breaks plan 06 trending once it starts counting seconds listened. The proper bridge also catches pause (position stops advancing naturally), seek (next heartbeat picks up the new position), and "ended" (auto-fires `stop()`, which clears the resume slot and ends the play session). Script cost is one-time per tab; both APIs are on the same origin as the iframe we already load.
+
+**Rejected (in this revision):** Wall-clock only (inaccurate `duration_listened_seconds`, no auto-stop on end, can't detect pause). Requires users to manually stop at end of set to avoid stale resume entries.
+
+**Supersedes:** Earlier draft of this entry (dated 2026-04-16 same day) that accepted wall-clock as v1 — superseded during validation review once the bridge integration was scoped and found to be ~150 LOC with no new dependencies.
+
+### 7b. Play session identity = `(user_id, set_id, started_at)`
+
+**Decision:** `play_events` upserts on the composite key `(user_id, set_id, started_at)` with a unique index. Every new `PLAY` dispatch creates a new row (new `startedAt`); heartbeats and `end` updates the existing row.
+
+**Why:** Keeps one row per listening session instead of one row per heartbeat — the history page collapses cleanly via `MAX(last_heartbeat_at) GROUP BY set_id`, and `duration_listened_seconds` per session is a meaningful number. Alternative (one row per heartbeat) would need a separate `sessions` table to aggregate.
+
+**Rejected:** Row per heartbeat (write amplification, extra aggregation layer); row per user-set pair with last-session-wins (loses mid-session replay data, breaks plan 06 play-count).
+
+### 7c. Anonymous play events are dropped server-side
+
+**Decision:** `/api/play` returns `204` with no DB write when the request is unauthenticated; anonymous users get localStorage resume only, no watch history.
+
+**Why:** Keeps `user_activity` + `play_events` tied to a real Keycloak subject — no IP-based bucket, no cookie ID. Plan 06 (trending signals) can use the same `play_events` table as a trusted play-count source (distinct sessions). Anonymous telemetry is OpenPanel's job, not ours.
+
+**Rejected:** Anonymous `session_id` cookie (complicates GDPR story, duplicates OpenPanel); 401 on anon (breaks "silent fallback" behavior — the client would need to branch on auth state to decide whether to POST).
+
+### 7d. `user_activity` logs only on discrete actions, not heartbeats
+
+**Decision:** `user_activity` rows are written on `view_set`, `play` (start beat only), `save`, `report`, `submit` — not on heartbeat or `end`. Recorded via the shared `recordUserActivity()` helper at the mutation's success path.
+
+**Why:** Avoids 1 activity row per 30 s of playback; preserves the activity log as a journey scan rather than a telemetry firehose. Admins care about "user saved X, reported Y, played Z" — not the 40 heartbeats inside Z.
+
+**Rejected:** Logging every beat (noise); logging on every mutation with a generic "mutation" action (loses semantic value for the admin page).
+
+---
+
 ## 2026-04-16 — Scraping + auditing pipeline redesign (plans 08–10)
 
 Three plans shipped together to close structural gaps in the discovery pipeline: no durable raw data, divergent dedup contracts between the two upload paths, and no admin merge primitive for existing duplicates. Each decision below is load-bearing for future work on plans 11 (scheduled cron) and 12 (scanner merge-candidate detection).

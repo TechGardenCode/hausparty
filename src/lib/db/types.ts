@@ -18,6 +18,8 @@ import type {
   userSettings,
   reports,
   sourceSuggestions,
+  playEvents,
+  userActivity,
 } from "./schema";
 
 // Row types inferred from Drizzle schema
@@ -39,6 +41,9 @@ export type UserSettings = InferSelectModel<typeof userSettings>;
 export type EventArtist = InferSelectModel<typeof eventArtists>;
 export type Report = InferSelectModel<typeof reports>;
 export type SourceSuggestion = InferSelectModel<typeof sourceSuggestions>;
+export type PlayEvent = InferSelectModel<typeof playEvents>;
+export type UserActivity = InferSelectModel<typeof userActivity>;
+export type UserAction = "view_set" | "play" | "save" | "report" | "submit";
 
 // Enum types
 export type Platform = "youtube" | "soundcloud";

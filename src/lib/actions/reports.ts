@@ -7,6 +7,7 @@ import { db } from "@/lib/db";
 import { reports } from "@/lib/db/schema";
 import { eq, and, sql, count, desc } from "drizzle-orm";
 import { reconcileSet } from "@/lib/services/healing/reconcile";
+import { recordUserActivity } from "./user-activity";
 import type { ReportType } from "@/lib/db/types";
 
 /**
@@ -50,6 +51,13 @@ export async function submitReport(data: {
       description: data.description ?? null,
     })
     .returning({ id: reports.id });
+
+  void recordUserActivity({
+    userId: session.user.id,
+    action: "report",
+    targetType: data.setId ? "set" : data.artistId ? "artist" : null,
+    targetId: data.setId ?? data.artistId ?? null,
+  });
 
   // Trigger reconciliation if a set was reported
   let autoResolved = false;
