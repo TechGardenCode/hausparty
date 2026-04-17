@@ -7,6 +7,7 @@ import { EmbeddedPlayer } from "./embedded-player";
 import { SourceRow } from "./source-row";
 import { usePlayer } from "./player/player-context";
 import { getEmbedUrl } from "@/lib/player/embed-url";
+import { readResume } from "@/lib/hooks/use-resume";
 import type { Source } from "@/lib/types/database";
 
 interface SourceSwitcherProps {
@@ -43,25 +44,41 @@ export function SourceSwitcher({
     if (
       !hasAutoPlayed.current &&
       current &&
-      getEmbedUrl(current, autoplay, resumePositionSeconds) &&
       playerState.status === "idle"
     ) {
+      // Resume preference ladder:
+      //   1. Explicit `?resume=N` query param (user clicked the resume pill).
+      //   2. localStorage entry matching this set (they reloaded mid-listen).
+      //   3. 0 (fresh play).
+      let effectiveResume = resumePositionSeconds;
+      if (effectiveResume <= 0) {
+        const stored = readResume();
+        if (stored && stored.setSlug === setSlug) {
+          effectiveResume = Math.max(0, Math.floor(stored.positionSeconds));
+        }
+      }
+
+      if (!getEmbedUrl(current, autoplay, effectiveResume)) return;
+
       const isTouchOnly =
         typeof window !== "undefined" &&
         window.matchMedia("(hover: none) and (pointer: coarse)").matches;
-      // Resume always implies autoplay intent — the user just clicked "Resume".
-      const initialAutoplay = resumePositionSeconds > 0
-        ? true
-        : isTouchOnly
-          ? false
-          : autoplay;
+      // Resume from query param implies autoplay intent (user clicked the
+      // pill). Resume from localStorage respects the user's autoplay pref so
+      // they don't get surprise audio on page reload.
+      const initialAutoplay =
+        resumePositionSeconds > 0
+          ? true
+          : isTouchOnly
+            ? false
+            : autoplay;
       play(
         current,
         setSlug,
         setTitle,
         thumbnailUrl,
         initialAutoplay,
-        resumePositionSeconds
+        effectiveResume
       );
       hasAutoPlayed.current = true;
     }

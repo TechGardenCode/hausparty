@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { Play, X } from "lucide-react";
 import { useResumeEntry } from "@/lib/hooks/use-resume";
 import { usePlayer } from "./player-context";
@@ -15,9 +16,13 @@ import { cn } from "@/lib/utils";
 export function ResumePrompt() {
   const { entry, dismiss } = useResumeEntry();
   const { state } = usePlayer();
+  const pathname = usePathname();
 
   if (!entry) return null;
   if (state.status === "active") return null;
+  // The set page itself auto-resumes from localStorage, so the pill would be
+  // a redundant "resume this page you are on" pill. Hide it there.
+  if (pathname === `/sets/${entry.setSlug}`) return null;
 
   return (
     <div
