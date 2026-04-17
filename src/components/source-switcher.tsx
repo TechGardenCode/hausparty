@@ -28,26 +28,10 @@ export function SourceSwitcher({
   resumePositionSeconds = 0,
 }: SourceSwitcherProps) {
   const activeSources = sources.filter((s) => s.isActive);
+  const [activeIndex, setActiveIndex] = useState(0);
+  const current = activeSources[activeIndex];
   const { state: playerState, play } = usePlayer();
   const hasAutoPlayed = useRef(false);
-
-  // Pick the initial index by consulting the resume slot: if the user was
-  // last listening to a specific source on this set, land on that source
-  // rather than the default first-in-list. Falls back to platform match,
-  // then 0. Computed lazily so SSR renders with index=0 and the client
-  // corrects before the first paint.
-  const [activeIndex, setActiveIndex] = useState<number>(() => {
-    if (typeof window === "undefined") return 0;
-    const stored = readResume();
-    if (!stored || stored.setSlug !== setSlug) return 0;
-    const byId = activeSources.findIndex((s) => s.id === stored.sourceId);
-    if (byId >= 0) return byId;
-    const byPlatform = activeSources.findIndex(
-      (s) => s.platform === stored.platform
-    );
-    return byPlatform >= 0 ? byPlatform : 0;
-  });
-  const current = activeSources[activeIndex];
 
   // Auto-register with the global player only if nothing is currently playing.
   // This preserves the active set when browsing to other set pages.
@@ -57,49 +41,75 @@ export function SourceSwitcher({
   // to autoplay=false and show the iframe's own play button. Once the user taps
   // play (or selects another source), subsequent transitions can autoplay.
   useLayoutEffect(() => {
-    if (
-      !hasAutoPlayed.current &&
-      current &&
-      playerState.status === "idle"
-    ) {
-      // Resume preference ladder:
-      //   1. Explicit `?resume=N` query param (user clicked the resume pill).
-      //   2. localStorage entry matching this set (they reloaded mid-listen).
-      //   3. 0 (fresh play).
-      let effectiveResume = resumePositionSeconds;
-      if (effectiveResume <= 0) {
-        const stored = readResume();
-        if (stored && stored.setSlug === setSlug) {
+    if (hasAutoPlayed.current) return;
+    if (playerState.status !== "idle") return;
+    if (activeSources.length === 0) return;
+
+    // Resume preference ladder:
+    //   1. Explicit `?resume=N` query param (user clicked the resume pill).
+    //   2. localStorage entry matching this set (reloaded mid-listen).
+    //   3. 0 (fresh play).
+    // The stored `sourceId` also decides which source we land on for
+    // multi-source sets — without it a YouTube+SoundCloud set would always
+    // default to index 0, ignoring the source the user was actually on.
+    let effectiveResume = resumePositionSeconds;
+    let targetIndex = 0;
+
+    if (typeof window !== "undefined") {
+      const stored = readResume();
+      if (stored && stored.setSlug === setSlug) {
+        const byId = activeSources.findIndex((s) => s.id === stored.sourceId);
+        if (byId >= 0) {
+          targetIndex = byId;
+        } else {
+          const byPlatform = activeSources.findIndex(
+            (s) => s.platform === stored.platform
+          );
+          if (byPlatform >= 0) targetIndex = byPlatform;
+        }
+        if (effectiveResume <= 0) {
           effectiveResume = Math.max(0, Math.floor(stored.positionSeconds));
         }
       }
-
-      if (!getEmbedUrl(current, autoplay, effectiveResume)) return;
-
-      const isTouchOnly =
-        typeof window !== "undefined" &&
-        window.matchMedia("(hover: none) and (pointer: coarse)").matches;
-      // Resume from query param implies autoplay intent (user clicked the
-      // pill). Resume from localStorage respects the user's autoplay pref so
-      // they don't get surprise audio on page reload.
-      const initialAutoplay =
-        resumePositionSeconds > 0
-          ? true
-          : isTouchOnly
-            ? false
-            : autoplay;
-      play(
-        current,
-        setSlug,
-        setTitle,
-        thumbnailUrl,
-        initialAutoplay,
-        effectiveResume
-      );
-      hasAutoPlayed.current = true;
     }
+
+    const target = activeSources[targetIndex];
+    if (!target) return;
+    if (!getEmbedUrl(target, autoplay, effectiveResume)) return;
+
+    if (targetIndex !== activeIndex) {
+      // One-shot reconciliation: targetIndex is derived from localStorage,
+      // which is only available client-side (SSR returns 0). Guarded by
+      // hasAutoPlayed so this runs exactly once per mount.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setActiveIndex(targetIndex);
+    }
+
+    const isTouchOnly =
+      typeof window !== "undefined" &&
+      window.matchMedia("(hover: none) and (pointer: coarse)").matches;
+    // Resume from query param implies autoplay intent (user clicked the
+    // pill). Resume from localStorage respects the user's autoplay pref so
+    // they don't get surprise audio on page reload.
+    const initialAutoplay =
+      resumePositionSeconds > 0
+        ? true
+        : isTouchOnly
+          ? false
+          : autoplay;
+
+    play(
+      target,
+      setSlug,
+      setTitle,
+      thumbnailUrl,
+      initialAutoplay,
+      effectiveResume
+    );
+    hasAutoPlayed.current = true;
   }, [
-    current,
+    activeSources,
+    activeIndex,
     setSlug,
     setTitle,
     thumbnailUrl,
