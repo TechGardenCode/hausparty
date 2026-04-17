@@ -8,6 +8,10 @@ import { eq } from "drizzle-orm";
 import { getScraperByName } from "@/lib/services/scrapers/registry";
 import { ScraperRunner } from "@/lib/services/scrapers/runner";
 import { replayFromArchive } from "@/lib/services/scrapers/raw-archive";
+import {
+  getInFlightRun,
+  ScraperInFlightError,
+} from "@/lib/services/scrapers/in-flight";
 import type { ScraperStats } from "@/lib/services/scrapers/types";
 
 /**
@@ -23,6 +27,11 @@ export async function runScraper(
   const entry = getScraperByName(scraperName);
   if (!entry) {
     throw new Error(`Unknown scraper: ${scraperName}`);
+  }
+
+  const inFlight = await getInFlightRun(scraperName);
+  if (inFlight) {
+    throw new ScraperInFlightError(scraperName, inFlight.id, inFlight.startedAt);
   }
 
   // Create the run row upfront so we can return the ID immediately
