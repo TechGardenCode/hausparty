@@ -21,7 +21,11 @@ jobs:
           cache: npm
 
       - name: Install dependencies
-        run: npm ci
+        # Not `npm ci` — our lockfile has transitive refs to wasm32-only
+        # optional packages (via sharp) that macOS-generated lockfiles
+        # can't resolve cleanly. `npm install` with a committed lockfile
+        # is still reproducible and tolerates the platform quirk.
+        run: npm install --prefer-offline --no-audit --no-fund
 
       - name: Lint
         run: npm run lint
