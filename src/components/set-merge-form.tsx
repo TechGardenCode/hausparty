@@ -12,6 +12,7 @@ import {
   type MergeTargetOption,
 } from "@/lib/actions/admin-merge";
 import { useToast } from "@/components/toast";
+import { ConfirmDialog } from "@/components/confirm-dialog";
 
 interface Props {
   from: { id: string; title: string; slug: string };
@@ -30,6 +31,7 @@ export function SetMergeForm({ from, suggestedTarget }: Props) {
   const [preview, setPreview] = useState<MergePreview | null>(null);
   const [previewing, setPreviewing] = useState(false);
   const [merging, startMerging] = useTransition();
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   async function runSearch(value: string) {
     setQuery(value);
@@ -76,11 +78,13 @@ export function SetMergeForm({ from, suggestedTarget }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  function confirmMerge() {
+  function requestConfirm() {
     if (!selected) return;
-    if (!confirm(`Merge "${from.title}" into "${selected.title}"? This cannot be undone automatically.`)) {
-      return;
-    }
+    setConfirmOpen(true);
+  }
+
+  function runMerge() {
+    if (!selected) return;
     startMerging(async () => {
       try {
         const result = await mergeSet(from.id, selected.id);
@@ -88,9 +92,11 @@ export function SetMergeForm({ from, suggestedTarget }: Props) {
           `Merged — ${result.moved.sources} sources, ${result.moved.saves} saves moved.`,
           "success"
         );
+        setConfirmOpen(false);
         router.push(`/sets/${selected.slug}`);
       } catch (err) {
         toast(err instanceof Error ? err.message : "Merge failed", "error");
+        setConfirmOpen(false);
       }
     });
   }
@@ -214,7 +220,7 @@ export function SetMergeForm({ from, suggestedTarget }: Props) {
       )}
 
       {/* Confirm */}
-      {preview && preview.blockers.length === 0 && (
+      {preview && preview.blockers.length === 0 && selected && (
         <div className="flex items-center justify-end gap-3">
           <Link
             href="/admin/sets"
@@ -224,19 +230,50 @@ export function SetMergeForm({ from, suggestedTarget }: Props) {
           </Link>
           <button
             type="button"
-            onClick={confirmMerge}
+            onClick={requestConfirm}
             disabled={merging}
             className="inline-flex items-center gap-2 rounded-lg bg-accent-warm px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
           >
-            {merging ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <CheckCircle className="h-4 w-4" />
-            )}
-            {merging ? "Merging..." : "Confirm merge"}
+            <CheckCircle className="h-4 w-4" />
+            Confirm merge
           </button>
         </div>
       )}
+
+      <ConfirmDialog
+        open={confirmOpen}
+        title="Merge this set?"
+        description={
+          preview && selected ? (
+            <div className="space-y-2">
+              <p>
+                <span className="font-medium text-text-primary">{from.title}</span>{" "}
+                will become a slug redirect pointing at{" "}
+                <span className="font-medium text-text-primary">{selected.title}</span>.
+              </p>
+              <p className="text-xs text-text-tertiary">
+                Moves {preview.willMove.sources} source{preview.willMove.sources === 1 ? "" : "s"},
+                {" "}{preview.willMove.artists} new artist{preview.willMove.artists === 1 ? "" : "s"},
+                {" "}{preview.willMove.saves} save{preview.willMove.saves === 1 ? "" : "s"}.
+                {preview.willMove.tracklistDropped > 0 && (
+                  <>
+                    {" "}Drops {preview.willMove.tracklistDropped} tracklist entr{preview.willMove.tracklistDropped === 1 ? "y" : "ies"}.
+                  </>
+                )}
+                {" "}Reversible only by manual DB edit.
+              </p>
+            </div>
+          ) : (
+            "This action is reversible only by manual DB edit."
+          )
+        }
+        confirmLabel={merging ? "Merging..." : "Merge"}
+        cancelLabel="Cancel"
+        intent="warning"
+        loading={merging}
+        onConfirm={runMerge}
+        onCancel={() => setConfirmOpen(false)}
+      />
     </div>
   );
 }
