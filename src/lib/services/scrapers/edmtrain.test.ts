@@ -4,7 +4,7 @@ import type { EdmtrainRawEvent } from "./edmtrain";
 import fixtureData from "./__fixtures__/edmtrain-events.json";
 
 const scraper = new EdmtrainScraper();
-const events: EdmtrainRawEvent[] = fixtureData.data;
+const events = fixtureData.data as unknown as EdmtrainRawEvent[];
 
 describe("EdmtrainScraper.normalize", () => {
   it("normalizes a standard event with artists", () => {

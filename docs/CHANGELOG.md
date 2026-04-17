@@ -6,6 +6,44 @@ Most recent first.
 
 ---
 
+## 2026-04-17 — Quality audit stage 1: CI quality gate
+
+**Scope**
+- CI now runs `npm ci` → lint → `tsc --noEmit` → Vitest with coverage before the Docker build; `build` job gains `needs: quality`.
+- Vitest configured with v8 coverage (`text` + `json-summary` reporters) and regression-floor thresholds calibrated against today's numbers.
+- Five pre-existing TypeScript errors in test files fixed; 373/373 tests still pass.
+
+**Changes**
+- `.github/workflows/ci.yml` — new `quality` job gates `build`.
+- `vitest.config.ts` — v8 coverage, thresholds: lines 65, functions 50, branches 60, statements 65 (actual: 69.56 / 51.38 / 66.57 / 67.39).
+- `package.json` — add dev dep `@vitest/coverage-v8`.
+- `.dockerignore` — ignore `coverage/` (already in `.gitignore`).
+- Test fixes:
+  - `src/components/player/player-context.test.ts` — `makeSource` now matches the Drizzle-derived `Source` shape (camelCase fields, `createdAt: Date`, drop non-existent quality/view/checked columns).
+  - `src/lib/services/artist-matching.test.ts`, `src/lib/services/sets/find-or-link.test.ts` — widen Proxy index signature to `Record<string | symbol, unknown>` so the `innerProp` forwarder type-checks.
+  - `src/lib/services/scrapers/edmtrain.test.ts` — cast the fixture through `unknown` to allow the `name: null` test entry that `EdmtrainRawEvent` models as `name?: string`.
+
+**Non-goals (deferred to later quality-audit stages)**
+- Lint warnings (35 today) still allowed — Stage 2 flips `lint` to `--max-warnings 0`.
+- Coverage thresholds are regression floors only, not aspirations.
+- No Playwright yet (Stage 4).
+
+**Verification**
+- Local: `npx tsc --noEmit` clean, `npm run test` 373/373, `npx vitest run --coverage` prints the summary, `npm run lint` exit 0 (warnings only).
+- Remote: push a throwaway branch breaking one test to confirm `build` stays unexecuted while `quality` fails.
+
+---
+
+## 2026-04-17 — Promoted hausparty to prod (plan 07)
+
+- Image `cc7c8e2` promoted to prod via homelab PR #157 (merged at 13:43:44Z)
+- ArgoCD app `1276-prod.hausparty.hausparty` Synced + Healthy on revision `62f7199`
+- PreSync `hausparty-migrate` Job completed at 13:44:14Z — migration 0011 (play_events + user_activity) applied to the prod CNPG cluster
+- 2/2 replicas Ready on `cc7c8e2`; `https://hausparty.techgarden.gg/api/health` → 200 ok
+- Total rollout time: ~30s from merge to healthy
+
+---
+
 ## 2026-04-16 — Plan 07: player continuity & watch history
 
 **Scope**

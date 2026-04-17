@@ -4,6 +4,38 @@ Decisions significant enough to affect future work. Each entry captures what was
 
 ---
 
+## 2026-04-17 — Quality-audit stage 1: CI quality-gate policy
+
+**Type:** process / engineering
+
+### Coverage thresholds are regression floors, not aspirations
+
+**Decision:** `vitest.config.ts` thresholds set to lines 65 / functions 50 / branches 60 / statements 65 — each a few points under today's actual numbers (69.56 / 51.38 / 66.57 / 67.39). Future stages of the quality audit raise them when real coverage is added; they never race ahead of the code.
+
+**Why:** A threshold above today's reality would fail the first CI run and train the team to either mass-ratchet it down or disable it — both destroy the signal. A threshold a few points below gives a predictable regression alarm without daily flake.
+
+**Rejected:** Aspirational thresholds (80/80/70/80) — guarantees flake until a separate coverage-push initiative lands, and the test-writing work belongs in Stage 4, not Stage 1. `0/0/0/0` — no regression signal at all.
+
+### Lint warnings remain non-blocking in Stage 1; Stage 2 flips them
+
+**Decision:** `npm run lint` in CI exits 0 on warnings (35 today across the repo). Stage 2 of the quality audit adds `--max-warnings 0` once the warnings are cleaned.
+
+**Why:** Staging the gate prevents a Stage 1 PR from ballooning into a warning-cleanup PR. Stage 1's goal is "PR that forgets `npm run test` cannot merge" — coupling that to a warning purge inflates scope and risks Stage 1 never landing.
+
+**Rejected:** Flip warnings to errors in the same stage — spec creep; Stage 2 has a dedicated plan for it.
+
+### `build` gated on `quality`, not parallel with it
+
+**Decision:** `build` job declares `needs: quality`. The Docker build does not start until lint + tsc + test + coverage all pass.
+
+**Why:** The build is the expensive job (multi-stage Dockerfile, full Next.js production build, ghcr push). Running it in parallel with cheap gates wastes minutes per failing PR and costs GHA runner time for nothing. Sequential gives the correct failure signal first.
+
+**Rejected:** Parallel jobs with a `merge-gate` synthetic check — marginally faster for green PRs, strictly worse for red PRs, added YAML surface area.
+
+**Docs updated:** `docs/CHANGELOG.md` (stage 1 operational entry)
+
+---
+
 ## 2026-04-16 — Plan 07: player continuity architecture
 
 ### 7a. Position read via the iframe media APIs, wall-clock as fallback

@@ -56,19 +56,15 @@ function playerReducer(state: PlayerState, action: PlayerAction): PlayerState {
 function makeSource(overrides: Partial<Source> = {}): Source {
   return {
     id: "00000000-0000-0000-0000-000000000001",
-    set_id: "00000000-0000-0000-0000-000000000002",
+    setId: "00000000-0000-0000-0000-000000000002",
     platform: "youtube",
     url: "https://www.youtube.com/watch?v=abc123",
-    source_type: "official",
-    media_type: "video",
-    embed_supported: true,
-    is_active: true,
-    quality_score: null,
-    duration_seconds: null,
-    view_count: null,
-    created_at: "2026-01-01T00:00:00Z",
-    updated_at: "2026-01-01T00:00:00Z",
-    last_checked_at: null,
+    sourceType: "official",
+    mediaType: "video",
+    quality: null,
+    embedSupported: true,
+    isActive: true,
+    createdAt: new Date("2026-01-01T00:00:00Z"),
     ...overrides,
   };
 }

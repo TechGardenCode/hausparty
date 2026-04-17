@@ -45,7 +45,7 @@ function makeSelectChain(): unknown {
               }
               if (innerProp === "catch" || innerProp === "finally")
                 return undefined;
-              return (target as Record<string, unknown>)[innerProp];
+              return (target as Record<string | symbol, unknown>)[innerProp];
             },
           });
         }
@@ -80,7 +80,7 @@ function makeInsertChain(): unknown {
                 return () => Promise.resolve();
               }
               if (innerProp === "catch" || innerProp === "finally") return undefined;
-              return (target as Record<string, unknown>)[innerProp];
+              return (target as Record<string | symbol, unknown>)[innerProp];
             },
           });
         }

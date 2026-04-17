@@ -50,7 +50,7 @@ function createChainProxy(): unknown {
               if (innerProp === "catch" || innerProp === "finally")
                 return undefined;
               // Not terminal, continue chain
-              return (target as Record<string, unknown>)[innerProp];
+              return (target as Record<string | symbol, unknown>)[innerProp];
             },
           });
         }
