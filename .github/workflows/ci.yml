@@ -68,11 +68,11 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Update image tag in homelab
+      - name: Nudge homelab writer
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        uses: peter-evans/repository-dispatch@v4
+        uses: peter-evans/repository-dispatch@28959ce8df70de7be546dd1250a005dd32156697 # v4.0.1
         with:
-          token: ${{ secrets.HOMELAB_PAT }}
-          repository: techgardencode/homelab
+          token: ${{ secrets.HOMELAB_DISPATCH_TOKEN }}
+          repository: TechGardenCode/homelab
           event-type: update-image
-          client-payload: '{"app": "hausparty", "tag": "${{ github.sha }}", "env": "dev"}'
+          client-payload: '{"app": "hausparty"}'
